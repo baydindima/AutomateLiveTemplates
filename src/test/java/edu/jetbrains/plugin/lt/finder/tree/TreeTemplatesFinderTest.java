@@ -1,12 +1,10 @@
-package edu.jetbrains.plugin.lt.tree;
+package edu.jetbrains.plugin.lt.finder.tree;
 
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.psi.PsiFile;
 import com.intellij.testFramework.fixtures.LightCodeInsightFixtureTestCase;
 import edu.jetbrains.plugin.lt.finder.Parameters;
 import edu.jetbrains.plugin.lt.finder.Template;
-import edu.jetbrains.plugin.lt.finder.tree.TreeTemplatesFinder;
-import edu.jetbrains.plugin.lt.finder.tree.TreeTemplatesFinderParameters;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
