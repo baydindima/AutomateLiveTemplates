@@ -4,6 +4,7 @@ plugins {
 
 apply plugin: 'org.jetbrains.intellij'
 apply plugin: 'java'
+apply plugin: 'scala'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
@@ -22,6 +23,8 @@ repositories {
 
 dependencies {
     testCompile 'junit:junit:4.12'
+    testCompile 'org.scala-lang:scala-library:2.11.8'
+    testCompile 'org.scalatest:scalatest_2.11:3.0.0'
 }
 
 
