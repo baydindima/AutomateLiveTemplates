@@ -1,0 +1,46 @@
+<idea-plugin version="2">
+    <id>edu.jetbrains.plugin.lt</id>
+    <name>Automate Live Templates</name>
+    <version>1.0</version>
+    <vendor email="baidin.d1993@gmail.com" url="https://github.com/baydindima">DmitriyBaidin</vendor>
+
+    <description><![CDATA[
+    ]]></description>
+
+    <change-notes><![CDATA[
+    ]]>
+    </change-notes>
+
+    <!-- please see https://confluence.jetbrains.com/display/IDEADEV/Build+Number+Ranges for description -->
+    <idea-version since-build="143.2370.31"/>
+
+    <!-- please see https://confluence.jetbrains.com/display/IDEADEV/Plugin+Compatibility+with+IntelliJ+Platform+Products
+         on how to target different products -->
+    <!-- uncomment to enable plugin in all products
+    <depends>com.intellij.modules.lang</depends>
+    -->
+
+    <extensionPoints>
+        <extensionPoint name="fileTypeTemplateFilter"
+                        interface="edu.jetbrains.plugin.lt.extensions.ep.FileTypeTemplateFilter"/>
+    </extensionPoints>
+
+    <extensions defaultExtensionNs="edu.jetbrains.plugin.lt">
+        <fileTypeTemplateFilter implementation="edu.jetbrains.plugin.lt.extensions.JavaFileTypeTemplateFilter"/>
+    </extensions>
+
+    <application-components>
+    </application-components>
+
+    <project-components>
+    </project-components>
+
+    <actions>
+        <action id="TemplatesFinder.ID" class="edu.jetbrains.plugin.lt.TemplatesFindAction" text="Find Templates"
+                description="Find templates in project">
+            <add-to-group group-id="AnalyzeActions" anchor="last"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="shift ctrl alt MULTIPLY"/>
+        </action>
+    </actions>
+
+</idea-plugin>
