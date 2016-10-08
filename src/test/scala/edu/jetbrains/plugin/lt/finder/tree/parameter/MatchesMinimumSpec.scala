@@ -6,22 +6,6 @@ import edu.jetbrains.plugin.lt.finder.tree.TreeTemplatesFinderParameters.Name
   * Created by Dmitriy Baidin.
   */
 class MatchesMinimumSpec extends ParameterTestBase {
-  val classText =
-    """
-      |package edu.jetbrains.plugin.lt.finder.tree;
-      |
-      |
-      |class Test {
-      |
-      |    public static void main(String[] args) {
-      |        System.out.println("a");
-      |        System.out.println("b");
-      |        System.out.println("c");
-      |        System.out.println("d");
-      |        System.out.println("e");
-      |    }
-      |}
-    """
 
   def testTooHighMatchesMinimum(): Unit = {
     findJavaTemplates(
@@ -30,7 +14,7 @@ class MatchesMinimumSpec extends ParameterTestBase {
           Name.MATCHES_MINIMUM → 6
         )
       ),
-      classText
+      classText1
     ) shouldBe empty
   }
 
@@ -42,7 +26,7 @@ class MatchesMinimumSpec extends ParameterTestBase {
           Name.MATCHES_MINIMUM → 5
         )
       ),
-      classText
+      classText1
     ) should not be empty
   }
 

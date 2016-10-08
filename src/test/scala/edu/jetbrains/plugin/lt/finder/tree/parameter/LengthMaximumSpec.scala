@@ -7,22 +7,6 @@ import edu.jetbrains.plugin.lt.finder.tree.TreeTemplatesFinderParameters.Name
   */
 
 class LengthMaximumSpec extends ParameterTestBase {
-  val classText =
-    """
-      |package edu.jetbrains.plugin.lt.finder.tree;
-      |
-      |
-      |class Test {
-      |
-      |    public static void main(String[] args) {
-      |        System.out.println("a");
-      |        System.out.println("b");
-      |        System.out.println("c");
-      |        System.out.println("d");
-      |        System.out.println("e");
-      |    }
-      |}
-    """
 
   def testTooLowMaximumLength(): Unit = {
     findJavaTemplates(
@@ -31,7 +15,7 @@ class LengthMaximumSpec extends ParameterTestBase {
           Name.LENGTH_MAXIMUM → 10
         )
       ),
-      classText
+      classText1
     ) shouldBe empty
   }
 
@@ -42,7 +26,7 @@ class LengthMaximumSpec extends ParameterTestBase {
           Name.LENGTH_MAXIMUM → 1488
         )
       ),
-      classText
+      classText1
     ) should not be empty
   }
 

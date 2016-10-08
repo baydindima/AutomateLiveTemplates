@@ -6,23 +6,6 @@ import edu.jetbrains.plugin.lt.finder.tree.TreeTemplatesFinderParameters.Name
   * Created by Dmitriy Baidin.
   */
 class NodesMinimumTest extends ParameterTestBase {
-  val classText =
-    """
-      |package edu.jetbrains.plugin.lt.finder.tree;
-      |
-      |
-      |class Test {
-      |
-      |    public static void main(String[] args) {
-      |        System.out.println("a");
-      |        System.out.println("b");
-      |        System.out.println("c");
-      |        System.out.println("d");
-      |        System.out.println("e");
-      |    }
-      |}
-    """
-
   def testTooHighMinimumNodes(): Unit = {
     findJavaTemplates(
       getSearchParameters(
@@ -30,7 +13,7 @@ class NodesMinimumTest extends ParameterTestBase {
           Name.NODES_MINIMUM → 30
         )
       ),
-      classText
+      classText1
     ) shouldBe empty
   }
 
@@ -41,7 +24,7 @@ class NodesMinimumTest extends ParameterTestBase {
           Name.NODES_MINIMUM → 5
         )
       ),
-      classText
+      classText1
     ) should not be empty
   }
 
