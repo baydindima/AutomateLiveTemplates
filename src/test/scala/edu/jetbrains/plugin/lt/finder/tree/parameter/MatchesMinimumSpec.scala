@@ -5,8 +5,7 @@ import edu.jetbrains.plugin.lt.finder.tree.TreeTemplatesFinderParameters.Name
 /**
   * Created by Dmitriy Baidin.
   */
-
-class LengthMaximumSpec extends ParameterTestBase {
+class MatchesMinimumSpec extends ParameterTestBase {
   val classText =
     """
       |package edu.jetbrains.plugin.lt.finder.tree;
@@ -24,27 +23,27 @@ class LengthMaximumSpec extends ParameterTestBase {
       |}
     """
 
-  def testTooLowMaximumLength(): Unit = {
+  def testTooHighMatchesMinimum(): Unit = {
     findJavaTemplates(
       getSearchParameters(
         Map(
-          Name.LENGTH_MAXIMUM → 10
+          Name.MATCHES_MINIMUM → 6
         )
       ),
       classText
     ) should have length 0
   }
 
-  def testNormalMaximumLength(): Unit = {
+
+  def testNormalMatchesMinimum(): Unit = {
     findJavaTemplates(
       getSearchParameters(
         Map(
-          Name.LENGTH_MAXIMUM → 1488
+          Name.MATCHES_MINIMUM → 5
         )
       ),
       classText
     ) should have length 1
   }
-
 
 }
