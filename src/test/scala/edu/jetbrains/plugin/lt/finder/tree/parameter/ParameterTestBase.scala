@@ -15,6 +15,55 @@ import scala.collection.JavaConverters._
   */
 abstract class ParameterTestBase extends LightCodeInsightFixtureTestCase with Matchers {
 
+  val classText2 =
+    """
+      |package edu.jetbrains.plugin.lt.finder.tree;
+      |
+      |
+      |import java.util.ArrayList;
+      |import java.util.List;
+      |
+      |class Test {
+      |
+      |    public static void main(String[] args) {
+      |        List<Integer> ints = new ArrayList<>();
+      |        for (String arg : args) {
+      |            ints.add(Integer.valueOf(arg));
+      |        }
+      |
+      |        List<Double> doubles = new ArrayList<>();
+      |        for (String arg : args) {
+      |            doubles.add(Double.valueOf(arg));
+      |        }
+      |
+      |        List<Float> floats = new ArrayList<>();
+      |        for (String arg : args) {
+      |            floats.add(Float.valueOf(arg));
+      |        }
+      |
+      |        List<Short> shorts = new ArrayList<>();
+      |        for (String arg : args) {
+      |            shorts.add(Short.valueOf(arg));
+      |        }
+      |    }
+      |}
+      | """
+  val classText1 =
+    """
+      |package edu.jetbrains.plugin.lt.finder.tree;
+      |
+      |
+      |class Test {
+      |
+      |    public static void main(String[] args) {
+      |        System.out.println("a");
+      |        System.out.println("b");
+      |        System.out.println("c");
+      |        System.out.println("d");
+      |        System.out.println("e");
+      |    }
+      |}
+    """
   private val mockParameters = Map(
     TreeTemplatesFinderParameters.Name.DEPTH_MINIMUM → 0,
     TreeTemplatesFinderParameters.Name.LENGTH_MAXIMUM → Int.MaxValue,
