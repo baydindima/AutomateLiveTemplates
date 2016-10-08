@@ -1,7 +1,7 @@
 package edu.jetbrains.plugin.lt.finder.tree.parameter;
 
 
-public class LengthMinimumTestFile {
+class LengthMinimumTestFile {
 
     public static void main(String[] args) {
         System.out.println("a");
