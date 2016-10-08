@@ -12,7 +12,7 @@ class LengthMaximumSpec extends ParameterTestBase {
       |package edu.jetbrains.plugin.lt.finder.tree;
       |
       |
-      |class LengthMinimumTestFile {
+      |class Test {
       |
       |    public static void main(String[] args) {
       |        System.out.println("a");
@@ -32,7 +32,7 @@ class LengthMaximumSpec extends ParameterTestBase {
         )
       ),
       classText
-    ) should have length 0
+    ) shouldBe empty
   }
 
   def testNormalMaximumLength(): Unit = {
@@ -43,7 +43,7 @@ class LengthMaximumSpec extends ParameterTestBase {
         )
       ),
       classText
-    ) should have length 1
+    ) should not be empty
   }
 
 

@@ -11,7 +11,7 @@ class MatchesMinimumSpec extends ParameterTestBase {
       |package edu.jetbrains.plugin.lt.finder.tree;
       |
       |
-      |class LengthMinimumTestFile {
+      |class Test {
       |
       |    public static void main(String[] args) {
       |        System.out.println("a");
@@ -31,7 +31,7 @@ class MatchesMinimumSpec extends ParameterTestBase {
         )
       ),
       classText
-    ) should have length 0
+    ) shouldBe empty
   }
 
 
@@ -43,7 +43,7 @@ class MatchesMinimumSpec extends ParameterTestBase {
         )
       ),
       classText
-    ) should have length 1
+    ) should not be empty
   }
 
 }

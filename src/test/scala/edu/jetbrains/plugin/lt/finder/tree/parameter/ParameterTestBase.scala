@@ -18,7 +18,7 @@ abstract class ParameterTestBase extends LightCodeInsightFixtureTestCase with Ma
   private val mockParameters = Map(
     TreeTemplatesFinderParameters.Name.DEPTH_MINIMUM → 0,
     TreeTemplatesFinderParameters.Name.LENGTH_MAXIMUM → Int.MaxValue,
-    TreeTemplatesFinderParameters.Name.MATCHES_MINIMUM → 0,
+    TreeTemplatesFinderParameters.Name.MATCHES_MINIMUM → 2,
     TreeTemplatesFinderParameters.Name.LENGTH_MINIMUM → 0,
     TreeTemplatesFinderParameters.Name.PLACEHOLDERS_MAXIMUM → Int.MaxValue,
     TreeTemplatesFinderParameters.Name.TEMPLATES_TO_SHOW → Int.MaxValue
