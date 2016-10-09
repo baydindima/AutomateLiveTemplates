@@ -51,6 +51,8 @@ public class TreeTemplatesFinderParameters extends Parameters {
         DEPTH_MINIMUM,
         NODES_MINIMUM,
         PLACEHOLDERS_MAXIMUM,
+        PLACEHOLDER_NODES_PERCENT_MAXIMUM,
+        NODE_TEMPLATE_PERCENT,
         TEMPLATES_TO_SHOW
     }
 }
