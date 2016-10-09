@@ -6,62 +6,105 @@ import scala.collection.mutable
 import scala.language.postfixOps
 
 /**
+  * Class for representing generalized AST tree
+  * Each node of tree stores occurrence count
+  * And alternatives of children if it is a non leaf node and text otherwise
   * Created by Dmitriy Baidin.
   */
 class STree {
 
-  private val sNodeMap: mutable.Map[SNodeInfo, SNodeLink] = mutable.Map.empty
+  /**
+    * Map to store node id → data
+    */
+  private val idToData: mutable.Map[SNodeId, SNodeData] = mutable.Map.empty
 
+
+  /**
+    * Add new AST tree to STree
+    *
+    * @param astNode root node
+    */
   def add(astNode: ASTNode): Unit = {
     add(astNode, None)
   }
 
   def printTree(): Seq[String] = {
-    sNodeMap.filterKeys {
-      case i: SLeafNodeInfo ⇒ true
+    idToData.filterKeys {
+      case i: SLeafNodeId ⇒ true
       case _ ⇒ false
     }.map {
-      case (i: SLeafNodeInfo, link) ⇒
+      case (i: SLeafNodeId, link) ⇒
         s"${i.nodeText.value}: ${link.getOccurrenceCount}"
     }.toSeq
   }
 
-  private def add(astNode: ASTNode, parent: Option[SNodeChildrenAlternatives]): Unit = {
+  /**
+    * Add new node to STree
+    *
+    * @param astNode              current node
+    * @param alternativesOfParent option alternatives of parent node
+    */
+  private def add(astNode: ASTNode, alternativesOfParent: Option[SNodeChildrenAlternatives]): Unit = {
     val (childrenCount, children) = getChildren(astNode)
-    val nodeInfo = getInfo(astNode, childrenCount)
+    val nodeId = getId(astNode, childrenCount)
 
-    val linkToNode = updateSNodeMap(nodeInfo, childrenCount)
+    val data = updateIdToDataMap(nodeId, childrenCount)
 
-    parent.map(_.alternatives.put(nodeInfo, linkToNode))
+    alternativesOfParent.foreach(p ⇒ p.alternatives.get(nodeId) match {
+      case Some(info) ⇒
+      case None ⇒
+        p.alternatives.put(nodeId, data)
+    })
 
-    linkToNode match {
-      case link: InnerSLink ⇒
-        children.zip(link.children).foreach { case (child, alternatives) ⇒
+    data match {
+      case data: SInnerNodeData ⇒
+        children.zip(data.children).foreach { case (child, alternatives) ⇒
           add(child, Some(alternatives))
         }
       case _ ⇒
     }
   }
 
-  private def updateSNodeMap(nodeInfo: SNodeInfo, childrenCount: Int): SNodeLink = sNodeMap.get(nodeInfo) match {
-    case Some(link) ⇒
-      link.addOccurrence()
-      link
+  /**
+    * Update id to data map,
+    * Put if absent id → data
+    *
+    * @param nodeId        id of node
+    * @param childrenCount count of children of this node
+    * @return data of node
+    */
+  private def updateIdToDataMap(nodeId: SNodeId, childrenCount: Int): SNodeData = idToData.get(nodeId) match {
+    case Some(data) ⇒
+      data.addOccurrence()
+      data
     case None ⇒
-      val link = buildLink(childrenCount)
-      sNodeMap.put(nodeInfo, link)
-      link
+      val data = buildData(childrenCount)
+      idToData.put(nodeId, data)
+      data
   }
 
-  private def buildLink(childrenCount: Int): SNodeLink = childrenCount match {
+  /**
+    * Build data of node
+    *
+    * @param childrenCount children count of node
+    * @return [[SLeafNodeData]] if children count is 0,
+    *         or [[SInnerNodeData]] with array size of <code>childrenCount</code> otherwise
+    */
+  private def buildData(childrenCount: Int): SNodeData = childrenCount match {
     case 0 ⇒
-      new LeafSLink
+      new SLeafNodeData
     case n ⇒
-      new InnerSLink(Array.fill(n) {
+      new SInnerNodeData(Array.fill(n) {
         SNodeChildrenAlternatives()
       })
   }
 
+  /**
+    * Get children and them count
+    *
+    * @param astNode AST node
+    * @return tuple of children count and list of children
+    */
   private def getChildren(astNode: ASTNode): (Int, List[ASTNode]) = {
     var child = astNode.getFirstChildNode
 
@@ -77,13 +120,20 @@ class STree {
     (childrenCount, result)
   }
 
-  private def getInfo(astNode: ASTNode, childrenCount: Int): SNodeInfo = childrenCount match {
+  /**
+    * Build id of AST node
+    *
+    * @param astNode       AST node
+    * @param childrenCount count of children
+    * @return id of node
+    */
+  private def getId(astNode: ASTNode, childrenCount: Int): SNodeId = childrenCount match {
     case 0 ⇒
-      SLeafNodeInfo(
+      SLeafNodeId(
         IElementTypeIndex(astNode.getElementType.getIndex),
         NodeText(astNode.getText))
     case n ⇒
-      SInnerNodeInfo(
+      SInnerNodeId(
         IElementTypeIndex(astNode.getElementType.getIndex),
         ChildrenCount(n)
       )
