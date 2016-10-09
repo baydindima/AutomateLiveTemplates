@@ -3,7 +3,6 @@ package edu.jetbrains.plugin.lt.finder.stree
 import com.intellij.lang.ASTNode
 
 import scala.collection.mutable
-import scala.language.postfixOps
 
 /**
   * Class for representing generalized AST tree
@@ -16,7 +15,7 @@ class STree {
   /**
     * Map to store node id → data
     */
-  private val idToData: mutable.Map[SNodeId, SNodeData] = mutable.Map.empty
+  val idToData: mutable.Map[SNodeId, SNodeData] = mutable.Map.empty
 
 
   /**
@@ -26,16 +25,6 @@ class STree {
     */
   def add(astNode: ASTNode): Unit = {
     add(astNode, None)
-  }
-
-  def printTree(): Seq[String] = {
-    idToData.filterKeys {
-      case i: SLeafNodeId ⇒ true
-      case _ ⇒ false
-    }.map {
-      case (i: SLeafNodeId, link) ⇒
-        s"${i.nodeText.value}: ${link.getOccurrenceCount}"
-    }.toSeq
   }
 
   /**
