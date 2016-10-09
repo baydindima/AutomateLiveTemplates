@@ -3,14 +3,12 @@ package edu.jetbrains.plugin.lt.finder.stree
 import com.intellij.ide.highlighter.JavaFileType
 import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.LightCodeInsightFixtureTestCase
-import org.scalatest.Matchers
+import edu.jetbrains.plugin.lt.finder.stree.STreeBaseSpec._
 
 /**
   * Created by Dmitriy Baidin.
   */
-
-class STreeSpec extends LightCodeInsightFixtureTestCase with Matchers {
-
+class STreeWithFileSpec extends LightCodeInsightFixtureTestCase {
 
   val classText2 =
     """
@@ -70,35 +68,11 @@ class STreeSpec extends LightCodeInsightFixtureTestCase with Matchers {
     }
   }
 
-  def validateTreeStructure(sTree: STree): Unit = {
-    sTree.idToData.foreach {
-      case (id, data) ⇒ id match {
-        case i: SLeafNodeId ⇒
-          data shouldBe a[SLeafNodeData]
-        case i: SInnerNodeId ⇒
-          data shouldBe a[SInnerNodeData]
-      }
-    }
-
-    sTree.idToData.foreach {
-      case (id, data) ⇒ (id, data) match {
-        case (i: SInnerNodeId, d: SInnerNodeData) ⇒
-          i.childrenCount.value shouldEqual d.children.length
-
-          d.children.length should be > 0
-
-          d.children.foreach(_.alternatives.size should be > 0)
-        case _ ⇒
-      }
-    }
-
-    sTree.idToData.values.foreach(_.getOccurrenceCount should be > 0)
-  }
-
 
   private def buildJavaPsiFiles(texts: String*): Seq[PsiFile] = {
     texts.map(
       createLightFile(JavaFileType.INSTANCE, _)
     )
   }
+
 }

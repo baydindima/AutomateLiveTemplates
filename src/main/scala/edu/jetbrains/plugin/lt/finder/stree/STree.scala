@@ -119,11 +119,11 @@ class STree {
   private def getId(astNode: ASTNode, childrenCount: Int): SNodeId = childrenCount match {
     case 0 ⇒
       SLeafNodeId(
-        IElementTypeIndex(astNode.getElementType.getIndex),
+        ElementType(astNode.getElementType),
         NodeText(astNode.getText))
     case n ⇒
       SInnerNodeId(
-        IElementTypeIndex(astNode.getElementType.getIndex),
+        ElementType(astNode.getElementType),
         ChildrenCount(n)
       )
   }

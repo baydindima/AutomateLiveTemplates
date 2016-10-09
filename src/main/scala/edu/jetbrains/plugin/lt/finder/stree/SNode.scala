@@ -1,11 +1,13 @@
 package edu.jetbrains.plugin.lt.finder.stree
 
+import com.intellij.psi.tree.IElementType
+
 import scala.collection.mutable
 
 /**
   * Base class for links, also stores occurrence of node
   */
-abstract class SNodeData() {
+sealed abstract class SNodeData() {
   private var occurrenceCount: Int = 1
 
   def getOccurrenceCount: Int = occurrenceCount
@@ -44,8 +46,8 @@ object SNodeChildrenAlternatives {
   * Base class for node's id
   * Id should describe node, using in test for equality
   */
-abstract class SNodeId() {
-  def iElementTypeIndex: IElementTypeIndex
+sealed abstract class SNodeId() {
+  def iElementTypeIndex: ElementType
 }
 
 /**
@@ -54,7 +56,7 @@ abstract class SNodeId() {
   * @param iElementTypeIndex node type
   * @param childrenCount     count of children
   */
-case class SInnerNodeId(iElementTypeIndex: IElementTypeIndex,
+case class SInnerNodeId(iElementTypeIndex: ElementType,
                         childrenCount: ChildrenCount) extends SNodeId
 
 /**
@@ -63,7 +65,7 @@ case class SInnerNodeId(iElementTypeIndex: IElementTypeIndex,
   * @param iElementTypeIndex node type
   * @param nodeText          text of node
   */
-case class SLeafNodeId(iElementTypeIndex: IElementTypeIndex,
+case class SLeafNodeId(iElementTypeIndex: ElementType,
                        nodeText: NodeText) extends SNodeId
 
 /**
@@ -81,4 +83,4 @@ case class NodeText(value: String) extends AnyVal
 /**
   * Value-class for storing ast node type
   */
-case class IElementTypeIndex(value: Short) extends AnyVal
+case class ElementType(value: IElementType) extends AnyVal
