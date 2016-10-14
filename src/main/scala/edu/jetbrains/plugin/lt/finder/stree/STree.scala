@@ -106,7 +106,7 @@ class STree {
       child = child.getTreeNext
     }
 
-    (childrenCount, result)
+    (childrenCount, result.reverse)
   }
 
   /**

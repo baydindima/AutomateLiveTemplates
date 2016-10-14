@@ -47,25 +47,25 @@ object SNodeChildrenAlternatives {
   * Id should describe node, using in test for equality
   */
 sealed abstract class SNodeId() {
-  def iElementTypeIndex: ElementType
+  def elementType: ElementType
 }
 
 /**
   * Identifier of node which has children
   *
-  * @param iElementTypeIndex node type
-  * @param childrenCount     count of children
+  * @param elementType   node type
+  * @param childrenCount count of children
   */
-case class SInnerNodeId(iElementTypeIndex: ElementType,
+case class SInnerNodeId(elementType: ElementType,
                         childrenCount: ChildrenCount) extends SNodeId
 
 /**
   * Identifier of leaf node
   *
-  * @param iElementTypeIndex node type
-  * @param nodeText          text of node
+  * @param elementType node type
+  * @param nodeText    text of node
   */
-case class SLeafNodeId(iElementTypeIndex: ElementType,
+case class SLeafNodeId(elementType: ElementType,
                        nodeText: NodeText) extends SNodeId
 
 /**
