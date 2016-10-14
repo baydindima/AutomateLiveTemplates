@@ -1,8 +1,31 @@
 package edu.jetbrains.plugin.lt.finder.stree
 
-import com.intellij.psi.tree.IElementType
+/**
+  * Class for aggregating id and data
+  */
+sealed abstract class SimNode {
+  def nodeId: NodeId
 
-import scala.collection.mutable
+  def data: SimNodeData
+}
+
+object SimNode {
+  def apply(nodeId: NodeId,
+            data: SimNodeData): SimNode = (nodeId, data) match {
+    case (id: LeafNodeId, d: SimLeafNodeData) ⇒
+      new SimLeafNode(id, d)
+    case (id: InnerNodeId, d: SimInnerNodeData) ⇒
+      new SimInnerNode(id, d)
+    case _ ⇒
+      throw new RuntimeException(s"Id and data has incompatible types: $nodeId and $data")
+  }
+}
+
+class SimLeafNode(val nodeId: LeafNodeId,
+                  val data: SimLeafNodeData) extends SimNode
+
+class SimInnerNode(val nodeId: InnerNodeId,
+                   val data: SimInnerNodeData) extends SimNode
 
 /**
   * Base class for links, also stores occurrence of node
@@ -29,58 +52,4 @@ class SimLeafNodeData extends SimNodeData
   *
   * @param children array which stores by index i alternatives for i-th child
   */
-class SimInnerNodeData(val children: Array[SNodeChildrenAlternatives]) extends SimNodeData
-
-/**
-  * Class for representing alternatives of children
-  *
-  * @param alternatives map which store info about node 2 link
-  */
-class SNodeChildrenAlternatives(val alternatives: mutable.Map[SimNodeId, SimNodeData])
-
-object SNodeChildrenAlternatives {
-  def apply(): SNodeChildrenAlternatives = new SNodeChildrenAlternatives(new mutable.HashMap[SimNodeId, SimNodeData]())
-}
-
-/**
-  * Base class for node's id
-  * Id should describe node, using in test for equality
-  */
-sealed abstract class SimNodeId() {
-  def elementType: ElementType
-}
-
-/**
-  * Identifier of node which has children
-  *
-  * @param elementType   node type
-  * @param childrenCount count of children
-  */
-case class SimInnerNodeId(elementType: ElementType,
-                          childrenCount: ChildrenCount) extends SimNodeId
-
-/**
-  * Identifier of leaf node
-  *
-  * @param elementType node type
-  * @param nodeText    text of node
-  */
-case class SimLeafNodeId(elementType: ElementType,
-                         nodeText: NodeText) extends SimNodeId
-
-/**
-  * Value-class for storing children count
-  */
-case class ChildrenCount(value: Int) extends AnyVal
-
-
-/**
-  * Value-class for storing text of leaf node
-  */
-case class NodeText(value: String) extends AnyVal
-
-
-/**
-  * Value-class for storing ast node type
-  */
-case class ElementType(value: IElementType) extends AnyVal
+class SimInnerNodeData(val children: Array[NodeChildrenAlternatives[SimNode]]) extends SimNodeData

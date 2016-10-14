@@ -9,16 +9,16 @@ object SimTreeBaseSpec extends Matchers {
   def validateTreeStructure(sTree: SimTree): Unit = {
     sTree.idToData.foreach {
       case (id, data) ⇒ id match {
-        case i: SimLeafNodeId ⇒
+        case i: LeafNodeId ⇒
           data shouldBe a[SimLeafNodeData]
-        case i: SimInnerNodeId ⇒
+        case i: InnerNodeId ⇒
           data shouldBe a[SimInnerNodeData]
       }
     }
 
     sTree.idToData.foreach {
       case (id, data) ⇒ (id, data) match {
-        case (i: SimInnerNodeId, d: SimInnerNodeData) ⇒
+        case (i: InnerNodeId, d: SimInnerNodeData) ⇒
           i.childrenCount.value shouldEqual d.children.length
 
           d.children.length should be > 0

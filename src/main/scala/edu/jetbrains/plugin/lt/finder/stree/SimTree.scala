@@ -15,12 +15,12 @@ class SimTree {
   /**
     * Set of all nodes from which to start adding
     */
-  val rootNodes: mutable.Set[SimNodeId] = mutable.Set.empty
+  val rootNodes: mutable.Set[SimNode] = mutable.Set.empty
 
   /**
     * Map to store node id → data
     */
-  val idToData: mutable.Map[SimNodeId, SimNodeData] = mutable.Map.empty
+  val idToData: mutable.Map[NodeId, SimNodeData] = mutable.Map.empty
 
 
   /**
@@ -38,7 +38,7 @@ class SimTree {
     * @param astNode              current node
     * @param alternativesOfParent option alternatives of parent node
     */
-  private def add(astNode: ASTNode, alternativesOfParent: Option[SNodeChildrenAlternatives]): Unit = {
+  private def add(astNode: ASTNode, alternativesOfParent: Option[NodeChildrenAlternatives[SimNode]]): Unit = {
     val (childrenCount, children) = getChildren(astNode)
     val nodeId = getId(astNode, childrenCount)
 
@@ -49,10 +49,10 @@ class SimTree {
         p.alternatives.get(nodeId) match {
           case Some(info) ⇒
           case None ⇒
-            p.alternatives.put(nodeId, data)
+            p.alternatives.put(nodeId, SimNode(nodeId, data))
         }
       case None ⇒
-        rootNodes += nodeId
+        rootNodes += SimNode(nodeId, data)
     }
 
     data match {
@@ -73,7 +73,7 @@ class SimTree {
     * @param childrenCount count of children of this node
     * @return data of node
     */
-  private def updateIdToDataMap(nodeId: SimNodeId, childrenCount: Int): SimNodeData = idToData.get(nodeId) match {
+  private def updateIdToDataMap(nodeId: NodeId, childrenCount: Int): SimNodeData = idToData.get(nodeId) match {
     case Some(data) ⇒
       data.addOccurrence()
       data
@@ -95,7 +95,7 @@ class SimTree {
       new SimLeafNodeData
     case n ⇒
       new SimInnerNodeData(Array.fill(n) {
-        SNodeChildrenAlternatives()
+        NodeChildrenAlternatives()
       })
   }
 
@@ -127,13 +127,13 @@ class SimTree {
     * @param childrenCount count of children
     * @return id of node
     */
-  private def getId(astNode: ASTNode, childrenCount: Int): SimNodeId = childrenCount match {
+  private def getId(astNode: ASTNode, childrenCount: Int): NodeId = childrenCount match {
     case 0 ⇒
-      SimLeafNodeId(
+      LeafNodeId(
         ElementType(astNode.getElementType),
         NodeText(astNode.getText))
     case n ⇒
-      SimInnerNodeId(
+      InnerNodeId(
         ElementType(astNode.getElementType),
         ChildrenCount(n)
       )

@@ -28,7 +28,7 @@ class SimTreeWithASTGeneratorSpec extends FlatSpec with Matchers {
 
     tree.idToData.filter {
       case (i, data) ⇒ (i, data) match {
-        case (i: SimLeafNodeId, d: SimLeafNodeData) ⇒
+        case (i: LeafNodeId, d: SimLeafNodeData) ⇒
           data.getOccurrenceCount == 2
           i.nodeText.value == "test"
         case _ ⇒ false
@@ -62,14 +62,14 @@ class SimTreeWithASTGeneratorSpec extends FlatSpec with Matchers {
         data.children should have length 2
         data.children(0).alternatives should have size 1
         data.children(0).alternatives should contain key
-          SimLeafNodeId(ET(BLOCK_STATEMENT), NT("element1"))
+          LeafNodeId(ET(BLOCK_STATEMENT), NT("element1"))
 
         data.children(1).alternatives should have size 2
         data.children(1).alternatives should contain key
-          SimLeafNodeId(ET(BLOCK_STATEMENT), NT("element2"))
+          LeafNodeId(ET(BLOCK_STATEMENT), NT("element2"))
 
         data.children(1).alternatives should contain key
-          SimLeafNodeId(ET(BLOCK_STATEMENT), NT("element3"))
+          LeafNodeId(ET(BLOCK_STATEMENT), NT("element3"))
 
       case _ ⇒ fail("should find element with this type")
     }
@@ -115,12 +115,12 @@ class SimTreeWithASTGeneratorSpec extends FlatSpec with Matchers {
     tree.idToData.values.map(_.getOccurrenceCount).sum shouldEqual 17
 
     // 3
-    tree.idToData.get(SimInnerNodeId(ET(METHOD_REF_EXPRESSION), CC(2)))
+    tree.idToData.get(InnerNodeId(ET(METHOD_REF_EXPRESSION), CC(2)))
       .map(d ⇒ d.getOccurrenceCount shouldEqual 2)
       .isDefined shouldEqual true
 
     // 2
-    tree.idToData.get(SimInnerNodeId(ET(METHOD_CALL_EXPRESSION), CC(2)))
+    tree.idToData.get(InnerNodeId(ET(METHOD_CALL_EXPRESSION), CC(2)))
       .map {
         d ⇒
           d.getOccurrenceCount shouldEqual 3
@@ -135,7 +135,7 @@ class SimTreeWithASTGeneratorSpec extends FlatSpec with Matchers {
       .isDefined shouldEqual true
 
     //4
-    tree.idToData.get(SimLeafNodeId(ET(ANNOTATION), NT("4")))
+    tree.idToData.get(LeafNodeId(ET(ANNOTATION), NT("4")))
       .map(d ⇒ d.getOccurrenceCount shouldEqual 2)
       .isDefined shouldEqual true
   }
