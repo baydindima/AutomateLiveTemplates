@@ -13,6 +13,11 @@ import scala.collection.mutable
 class STree {
 
   /**
+    * Set of all nodes from which to start adding
+    */
+  val rootNodes: mutable.Set[SNodeId] = mutable.Set.empty
+
+  /**
     * Map to store node id → data
     */
   val idToData: mutable.Map[SNodeId, SNodeData] = mutable.Map.empty
@@ -39,16 +44,22 @@ class STree {
 
     val data = updateIdToDataMap(nodeId, childrenCount)
 
-    alternativesOfParent.foreach(p ⇒ p.alternatives.get(nodeId) match {
-      case Some(info) ⇒
+    alternativesOfParent match {
+      case Some(p) ⇒
+        p.alternatives.get(nodeId) match {
+          case Some(info) ⇒
+          case None ⇒
+            p.alternatives.put(nodeId, data)
+        }
       case None ⇒
-        p.alternatives.put(nodeId, data)
-    })
+        rootNodes += nodeId
+    }
 
     data match {
       case data: SInnerNodeData ⇒
-        children.zip(data.children).foreach { case (child, alternatives) ⇒
-          add(child, Some(alternatives))
+        children.zip(data.children).foreach {
+          case (child, alternatives) ⇒
+            add(child, Some(alternatives))
         }
       case _ ⇒
     }
