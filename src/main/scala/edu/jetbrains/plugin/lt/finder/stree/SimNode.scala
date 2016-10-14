@@ -7,7 +7,7 @@ import scala.collection.mutable
 /**
   * Base class for links, also stores occurrence of node
   */
-sealed abstract class SNodeData() {
+sealed abstract class SimNodeData() {
   private var occurrenceCount: Int = 1
 
   def getOccurrenceCount: Int = occurrenceCount
@@ -21,7 +21,7 @@ sealed abstract class SNodeData() {
 /**
   * Data to children of leaf node, stores only occurrence count
   */
-class SLeafNodeData extends SNodeData
+class SimLeafNodeData extends SimNodeData
 
 /**
   * Data of non leaf node, stores occurrence count
@@ -29,24 +29,24 @@ class SLeafNodeData extends SNodeData
   *
   * @param children array which stores by index i alternatives for i-th child
   */
-class SInnerNodeData(val children: Array[SNodeChildrenAlternatives]) extends SNodeData
+class SimInnerNodeData(val children: Array[SNodeChildrenAlternatives]) extends SimNodeData
 
 /**
   * Class for representing alternatives of children
   *
   * @param alternatives map which store info about node 2 link
   */
-class SNodeChildrenAlternatives(val alternatives: mutable.Map[SNodeId, SNodeData])
+class SNodeChildrenAlternatives(val alternatives: mutable.Map[SimNodeId, SimNodeData])
 
 object SNodeChildrenAlternatives {
-  def apply(): SNodeChildrenAlternatives = new SNodeChildrenAlternatives(new mutable.HashMap[SNodeId, SNodeData]())
+  def apply(): SNodeChildrenAlternatives = new SNodeChildrenAlternatives(new mutable.HashMap[SimNodeId, SimNodeData]())
 }
 
 /**
   * Base class for node's id
   * Id should describe node, using in test for equality
   */
-sealed abstract class SNodeId() {
+sealed abstract class SimNodeId() {
   def elementType: ElementType
 }
 
@@ -56,8 +56,8 @@ sealed abstract class SNodeId() {
   * @param elementType   node type
   * @param childrenCount count of children
   */
-case class SInnerNodeId(elementType: ElementType,
-                        childrenCount: ChildrenCount) extends SNodeId
+case class SimInnerNodeId(elementType: ElementType,
+                          childrenCount: ChildrenCount) extends SimNodeId
 
 /**
   * Identifier of leaf node
@@ -65,8 +65,8 @@ case class SInnerNodeId(elementType: ElementType,
   * @param elementType node type
   * @param nodeText    text of node
   */
-case class SLeafNodeId(elementType: ElementType,
-                       nodeText: NodeText) extends SNodeId
+case class SimLeafNodeId(elementType: ElementType,
+                         nodeText: NodeText) extends SimNodeId
 
 /**
   * Value-class for storing children count

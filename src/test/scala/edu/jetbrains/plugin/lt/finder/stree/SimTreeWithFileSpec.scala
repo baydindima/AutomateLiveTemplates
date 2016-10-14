@@ -3,12 +3,12 @@ package edu.jetbrains.plugin.lt.finder.stree
 import com.intellij.ide.highlighter.JavaFileType
 import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.LightCodeInsightFixtureTestCase
-import edu.jetbrains.plugin.lt.finder.stree.STreeBaseSpec._
+import edu.jetbrains.plugin.lt.finder.stree.SimTreeBaseSpec._
 
 /**
   * Created by Dmitriy Baidin.
   */
-class STreeWithFileSpec extends LightCodeInsightFixtureTestCase {
+class SimTreeWithFileSpec extends LightCodeInsightFixtureTestCase {
 
   val classText2 =
     """
@@ -61,7 +61,7 @@ class STreeWithFileSpec extends LightCodeInsightFixtureTestCase {
     """
 
   def testSTreeBuild(): Unit = {
-    val tree = new STree
+    val tree = new SimTree
     buildJavaPsiFiles(classText1, classText2).map(_.getNode).foreach { node ⇒
       tree.add(node)
       validateTreeStructure(tree)

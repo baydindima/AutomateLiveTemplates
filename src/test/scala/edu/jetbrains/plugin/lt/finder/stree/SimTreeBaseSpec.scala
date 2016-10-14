@@ -5,20 +5,20 @@ import org.scalatest.Matchers
 /**
   * Created by Dmitriy Baidin.
   */
-object STreeBaseSpec extends Matchers {
-  def validateTreeStructure(sTree: STree): Unit = {
+object SimTreeBaseSpec extends Matchers {
+  def validateTreeStructure(sTree: SimTree): Unit = {
     sTree.idToData.foreach {
       case (id, data) ⇒ id match {
-        case i: SLeafNodeId ⇒
-          data shouldBe a[SLeafNodeData]
-        case i: SInnerNodeId ⇒
-          data shouldBe a[SInnerNodeData]
+        case i: SimLeafNodeId ⇒
+          data shouldBe a[SimLeafNodeData]
+        case i: SimInnerNodeId ⇒
+          data shouldBe a[SimInnerNodeData]
       }
     }
 
     sTree.idToData.foreach {
       case (id, data) ⇒ (id, data) match {
-        case (i: SInnerNodeId, d: SInnerNodeData) ⇒
+        case (i: SimInnerNodeId, d: SimInnerNodeData) ⇒
           i.childrenCount.value shouldEqual d.children.length
 
           d.children.length should be > 0

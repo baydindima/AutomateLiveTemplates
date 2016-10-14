@@ -10,17 +10,17 @@ import scala.collection.mutable
   * And alternatives of children if it is a non leaf node and text otherwise
   * Created by Dmitriy Baidin.
   */
-class STree {
+class SimTree {
 
   /**
     * Set of all nodes from which to start adding
     */
-  val rootNodes: mutable.Set[SNodeId] = mutable.Set.empty
+  val rootNodes: mutable.Set[SimNodeId] = mutable.Set.empty
 
   /**
     * Map to store node id → data
     */
-  val idToData: mutable.Map[SNodeId, SNodeData] = mutable.Map.empty
+  val idToData: mutable.Map[SimNodeId, SimNodeData] = mutable.Map.empty
 
 
   /**
@@ -56,7 +56,7 @@ class STree {
     }
 
     data match {
-      case data: SInnerNodeData ⇒
+      case data: SimInnerNodeData ⇒
         children.zip(data.children).foreach {
           case (child, alternatives) ⇒
             add(child, Some(alternatives))
@@ -73,7 +73,7 @@ class STree {
     * @param childrenCount count of children of this node
     * @return data of node
     */
-  private def updateIdToDataMap(nodeId: SNodeId, childrenCount: Int): SNodeData = idToData.get(nodeId) match {
+  private def updateIdToDataMap(nodeId: SimNodeId, childrenCount: Int): SimNodeData = idToData.get(nodeId) match {
     case Some(data) ⇒
       data.addOccurrence()
       data
@@ -87,14 +87,14 @@ class STree {
     * Build data of node
     *
     * @param childrenCount children count of node
-    * @return [[SLeafNodeData]] if children count is 0,
-    *         or [[SInnerNodeData]] with array size of <code>childrenCount</code> otherwise
+    * @return [[SimLeafNodeData]] if children count is 0,
+    *         or [[SimInnerNodeData]] with array size of <code>childrenCount</code> otherwise
     */
-  private def buildData(childrenCount: Int): SNodeData = childrenCount match {
+  private def buildData(childrenCount: Int): SimNodeData = childrenCount match {
     case 0 ⇒
-      new SLeafNodeData
+      new SimLeafNodeData
     case n ⇒
-      new SInnerNodeData(Array.fill(n) {
+      new SimInnerNodeData(Array.fill(n) {
         SNodeChildrenAlternatives()
       })
   }
@@ -127,13 +127,13 @@ class STree {
     * @param childrenCount count of children
     * @return id of node
     */
-  private def getId(astNode: ASTNode, childrenCount: Int): SNodeId = childrenCount match {
+  private def getId(astNode: ASTNode, childrenCount: Int): SimNodeId = childrenCount match {
     case 0 ⇒
-      SLeafNodeId(
+      SimLeafNodeId(
         ElementType(astNode.getElementType),
         NodeText(astNode.getText))
     case n ⇒
-      SInnerNodeId(
+      SimInnerNodeId(
         ElementType(astNode.getElementType),
         ChildrenCount(n)
       )

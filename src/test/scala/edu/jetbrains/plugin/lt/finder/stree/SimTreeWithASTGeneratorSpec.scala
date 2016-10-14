@@ -1,6 +1,6 @@
 package edu.jetbrains.plugin.lt.finder.stree
 
-import edu.jetbrains.plugin.lt.finder.stree.STreeBaseSpec._
+import edu.jetbrains.plugin.lt.finder.stree.SimTreeBaseSpec._
 import edu.jetbrains.plugin.lt.finder.stree.{ChildrenCount => CC, ElementType => ET, NodeText => NT, TestInnerNode => IN, TestLeafNode => LN}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -10,12 +10,12 @@ import org.scalatest.{FlatSpec, Matchers}
   * Created by Dmitriy Baidin.
   */
 @RunWith(classOf[JUnitRunner])
-class STreeWithASTGeneratorSpec extends FlatSpec with Matchers {
+class SimTreeWithASTGeneratorSpec extends FlatSpec with Matchers {
 
   it should "unite equal nodes" in {
     import com.intellij.psi.impl.source.tree.JavaElementType._
     val generator = new ASTGenerator
-    val tree = new STree
+    val tree = new SimTree
 
     val root = generator.gen(
       IN(CLASS,
@@ -28,7 +28,7 @@ class STreeWithASTGeneratorSpec extends FlatSpec with Matchers {
 
     tree.idToData.filter {
       case (i, data) ⇒ (i, data) match {
-        case (i: SLeafNodeId, d: SLeafNodeData) ⇒
+        case (i: SimLeafNodeId, d: SimLeafNodeData) ⇒
           data.getOccurrenceCount == 2
           i.nodeText.value == "test"
         case _ ⇒ false
@@ -39,7 +39,7 @@ class STreeWithASTGeneratorSpec extends FlatSpec with Matchers {
   it should "add to alternatives different nodes" in {
     import com.intellij.psi.impl.source.tree.JavaElementType._
     val generator = new ASTGenerator
-    val tree = new STree
+    val tree = new SimTree
 
     val root = generator.gen(
       IN(CLASS,
@@ -58,18 +58,18 @@ class STreeWithASTGeneratorSpec extends FlatSpec with Matchers {
       case (id, data) ⇒
         id.elementType.value == METHOD
     } match {
-      case Some((id, data: SInnerNodeData)) ⇒
+      case Some((id, data: SimInnerNodeData)) ⇒
         data.children should have length 2
         data.children(0).alternatives should have size 1
         data.children(0).alternatives should contain key
-          SLeafNodeId(ET(BLOCK_STATEMENT), NT("element1"))
+          SimLeafNodeId(ET(BLOCK_STATEMENT), NT("element1"))
 
         data.children(1).alternatives should have size 2
         data.children(1).alternatives should contain key
-          SLeafNodeId(ET(BLOCK_STATEMENT), NT("element2"))
+          SimLeafNodeId(ET(BLOCK_STATEMENT), NT("element2"))
 
         data.children(1).alternatives should contain key
-          SLeafNodeId(ET(BLOCK_STATEMENT), NT("element3"))
+          SimLeafNodeId(ET(BLOCK_STATEMENT), NT("element3"))
 
       case _ ⇒ fail("should find element with this type")
     }
@@ -78,7 +78,7 @@ class STreeWithASTGeneratorSpec extends FlatSpec with Matchers {
   it should "Add occurrence on each meet" in {
     import com.intellij.psi.impl.source.tree.JavaElementType._
     val generator = new ASTGenerator
-    val tree = new STree
+    val tree = new SimTree
 
     val root = generator.gen(
       IN(CLASS, //0
@@ -115,17 +115,17 @@ class STreeWithASTGeneratorSpec extends FlatSpec with Matchers {
     tree.idToData.values.map(_.getOccurrenceCount).sum shouldEqual 17
 
     // 3
-    tree.idToData.get(SInnerNodeId(ET(METHOD_REF_EXPRESSION), CC(2)))
+    tree.idToData.get(SimInnerNodeId(ET(METHOD_REF_EXPRESSION), CC(2)))
       .map(d ⇒ d.getOccurrenceCount shouldEqual 2)
       .isDefined shouldEqual true
 
     // 2
-    tree.idToData.get(SInnerNodeId(ET(METHOD_CALL_EXPRESSION), CC(2)))
+    tree.idToData.get(SimInnerNodeId(ET(METHOD_CALL_EXPRESSION), CC(2)))
       .map {
         d ⇒
           d.getOccurrenceCount shouldEqual 3
           d match {
-            case d: SInnerNodeData ⇒
+            case d: SimInnerNodeData ⇒
               d.children should have length 2
               d.children(0).alternatives should have size 2
               d.children(1).alternatives should have size 3
@@ -135,7 +135,7 @@ class STreeWithASTGeneratorSpec extends FlatSpec with Matchers {
       .isDefined shouldEqual true
 
     //4
-    tree.idToData.get(SLeafNodeId(ET(ANNOTATION), NT("4")))
+    tree.idToData.get(SimLeafNodeId(ET(ANNOTATION), NT("4")))
       .map(d ⇒ d.getOccurrenceCount shouldEqual 2)
       .isDefined shouldEqual true
   }
