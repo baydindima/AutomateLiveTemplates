@@ -29,7 +29,7 @@ class SimTree {
     * @param astNode root node
     */
   def add(astNode: ASTNode): Unit = {
-    add(astNode, None)
+    add(astNode, None, CommonNodeStatistic.empty)
   }
 
   /**
@@ -38,30 +38,97 @@ class SimTree {
     * @param astNode              current node
     * @param alternativesOfParent option alternatives of parent node
     */
-  private def add(astNode: ASTNode, alternativesOfParent: Option[NodeChildrenAlternatives[SimNode]]): Unit = {
+  private def add(astNode: ASTNode,
+                  alternativesOfParent: Option[NodeChildrenAlternatives[SimNode]],
+                  commonNodeStatistic: CommonNodeStatistic): NodeStatistic = {
     val (childrenCount, children) = getChildren(astNode)
     val nodeId = getId(astNode, childrenCount)
 
     val data = updateIdToDataMap(nodeId, childrenCount)
 
-    alternativesOfParent match {
+    val simNode = alternativesOfParent match {
       case Some(p) ⇒
-        p.alternatives.get(nodeId) match {
-          case Some(info) ⇒
-          case None ⇒
-            p.alternatives.put(nodeId, SimNode(nodeId, data))
-        }
+        updateAlternativesOfParent(p, nodeId, data)
       case None ⇒
-        rootNodes += SimNode(nodeId, data)
+        val simNode = SimNode(nodeId, data)
+        rootNodes += simNode
+        simNode
     }
 
-    data match {
-      case data: SimInnerNodeData ⇒
-        children.zip(data.children).foreach {
+    calcStatistic(simNode,
+      commonNodeStatistic,
+      children,
+      childrenCount)
+  }
+
+  private def calcStatistic(simNode: SimNode,
+                            commonNodeStatistic: CommonNodeStatistic,
+                            children: Seq[ASTNode],
+                            childrenCount: Int): NodeStatistic = {
+    simNode match {
+      case node: SimInnerNode ⇒
+        val childrenCommonNodeStatistic = calcCommonStatistic(commonNodeStatistic, childrenCount)
+        val childrenStat = children.zip(node.data.children).map {
           case (child, alternatives) ⇒
-            add(child, Some(alternatives))
+            add(child, Some(alternatives), childrenCommonNodeStatistic)
         }
-      case _ ⇒
+        val stat = calcInnerNodeStatistic(node, childrenStat, commonNodeStatistic)
+        node.data.statistics += stat
+        stat
+      case node: SimLeafNode ⇒
+        val stat = calcLeafStatistic(commonNodeStatistic, node)
+        node.data.statistics += stat
+        stat
+    }
+  }
+
+  private def calcInnerNodeStatistic(node: SimInnerNode,
+                                     childrenStat: Seq[NodeStatistic],
+                                     commonNodeStatistic: CommonNodeStatistic): InnerNodeStatistic = {
+    val (leafStat, innerStat): (Seq[LeafNodeStatistic], Seq[InnerNodeStatistic]) =
+      ((List.empty[LeafNodeStatistic], List.empty[InnerNodeStatistic]) /: childrenStat) {
+        case ((ls, is), s) ⇒ s match {
+          case stat: InnerNodeStatistic ⇒
+            (ls, stat :: is)
+          case stat: LeafNodeStatistic ⇒
+            (stat :: ls, is)
+        }
+      }
+    new InnerNodeStatistic(
+      nodeCount = leafStat.size + innerStat.size + innerStat.map(_.nodeCount).sum,
+      leafCount = leafStat.size + innerStat.map(_.leafCount).sum,
+      innerCount = innerStat.size + innerStat.map(_.innerCount).sum,
+      maxDegreeSubtree = childrenStat.size max innerStat.map(_.maxDegreeSubtree).reduceOption(_ max _).getOrElse(0),
+      maxHeight = innerStat.map(_.maxHeight).reduceOption(_ max _).getOrElse(0) + 1,
+      minHeight = leafStat.headOption.map(_ ⇒ 1).getOrElse(innerStat.map(_.minHeight).min),
+      averageHeight = (leafStat.size + innerStat.map(_.averageHeight + 1).sum) / childrenStat.size,
+      commonStatistic = commonNodeStatistic
+    )
+  }
+
+  private def calcLeafStatistic(nodeStatistic: CommonNodeStatistic,
+                                node: SimLeafNode): LeafNodeStatistic =
+    new LeafNodeStatistic(
+      textLength = node.nodeId.nodeText.value.length,
+      commonStatistic = nodeStatistic
+    )
+
+  private def calcCommonStatistic(parentCommonStatistic: CommonNodeStatistic, siblingsCount: Int) =
+    new CommonNodeStatistic(
+      depth = parentCommonStatistic.depth + 1,
+      siblingsCount = siblingsCount
+    )
+
+  private def updateAlternativesOfParent(alternativesOfParent: NodeChildrenAlternatives[SimNode],
+                                         nodeId: NodeId,
+                                         data: SimNodeData): SimNode = {
+    alternativesOfParent.alternatives.get(nodeId) match {
+      case Some(node) ⇒ node
+      case None ⇒
+        data.addDifferentParentCount()
+        val simNode = SimNode(nodeId, data)
+        alternativesOfParent.alternatives.put(nodeId, simNode)
+        simNode
     }
   }
 
@@ -92,11 +159,9 @@ class SimTree {
     */
   private def buildData(childrenCount: Int): SimNodeData = childrenCount match {
     case 0 ⇒
-      new SimLeafNodeData
+      SimLeafNodeData.empty
     case n ⇒
-      new SimInnerNodeData(Array.fill(n) {
-        NodeChildrenAlternatives()
-      })
+      SimInnerNodeData.empty(childrenCount)
   }
 
   /**
