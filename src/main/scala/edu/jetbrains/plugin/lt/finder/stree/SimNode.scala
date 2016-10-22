@@ -23,17 +23,29 @@ object SimNode {
   }
 }
 
+/**
+  * Class for description of leaves
+  */
 class SimLeafNode(val nodeId: LeafNodeId,
                   val data: SimLeafNodeData) extends SimNode
 
+/**
+  * Class for description of inner nodes
+  */
 class SimInnerNode(val nodeId: InnerNodeId,
                    val data: SimInnerNodeData) extends SimNode
 
 /**
-  * Base class for links, also stores occurrence of node
+  * Base class for holding all data of node with certain nodeId
   */
 sealed abstract class SimNodeData() {
+  /**
+    * Count of occurrence of node with certain nodeId in all AST-Trees
+    */
   private var occurrenceCount: Int = 1
+  /**
+    * Count of different parents of node with certain nodeId in all AST-Trees
+    */
   private var differentParentCount: Int = 0
 
   def getOccurrenceCount: Int = occurrenceCount
@@ -48,7 +60,9 @@ sealed abstract class SimNodeData() {
 }
 
 /**
-  * Data to children of leaf node, stores only occurrence count
+  * Data to children of leaf node, stores only occurrence count and statistics
+  *
+  * @param statistics all statistics of nodes with such node id
   */
 class SimLeafNodeData(val statistics: ArrayBuffer[LeafNodeStatistic]) extends SimNodeData
 
@@ -57,10 +71,11 @@ object SimLeafNodeData {
 }
 
 /**
-  * Data of non leaf node, stores occurrence count
-  * And alternatives of children
+  * Data of non leaf node, stores occurrence count,
+  * alternatives of children and statistics
   *
-  * @param children array which stores by index i alternatives for i-th child
+  * @param children   array which stores by index i alternatives for i-th child
+  * @param statistics all statistics of nodes with such node id
   */
 class SimInnerNodeData(val children: Array[NodeChildrenAlternatives[SimNode]],
                        val statistics: ArrayBuffer[InnerNodeStatistic]) extends SimNodeData
@@ -74,71 +89,3 @@ object SimInnerNodeData {
       new ArrayBuffer[InnerNodeStatistic]()
     )
 }
-
-trait NodeStatistic
-
-class CommonNodeStatistic(val depth: Int,
-                          val siblingsCount: Int)
-
-object CommonNodeStatistic {
-  def empty: CommonNodeStatistic = new CommonNodeStatistic(depth = 0, siblingsCount = 0)
-}
-
-class LeafNodeStatistic(val textLength: Int,
-                        val commonStatistic: CommonNodeStatistic) extends NodeStatistic
-
-class InnerNodeStatistic(val nodeCount: Int,
-                         val leafCount: Int,
-                         val innerCount: Int,
-                         val maxDegreeSubtree: Int,
-                         val maxHeight: Int,
-                         val minHeight: Int,
-                         val averageHeight: Double,
-                         val commonStatistic: CommonNodeStatistic) extends NodeStatistic
-
-
-/**
-  * list in [[edu.jetbrains.plugin.lt.finder.stree.SimNodeData]]
-  * STATISTICS FOR NODE IN AST-TREE
-  * Depth
-  * Siblings count ?
-  *
-  * Only for inner nodes:
-  * Subtree size
-  * Leaf count
-  * Inner count
-  * Max degree in subtree
-  * Max height
-  * Min height
-  * Average height
-  *
-  * Only for leaf nodes:
-  * Text length
-  *
-  */
-
-/**
-  * field in [[edu.jetbrains.plugin.lt.finder.stree.SimNodeData]]
-  * STATISTICS FOR NODE IN S-AST-TREE
-  * Occurrence count
-  * Count of different parent ?
-  *
-  * For inner node
-  * Child - alternative count
-  * Alternative - occurrence count
-  *
-  */
-
-
-/**
-  * field in [[edu.jetbrains.plugin.lt.finder.stree.SimTree]]
-  * TOTAL STATISTICS OF S-TREE
-  * Count of trees
-  * Count of different roots
-  * Count of nodes / count of occurrence
-  * Count of leafs / count of occurrence of leafs
-  * Count of inner nodes / count of occurrence of inner nodes
-  * Max count of alternatives
-  * Average count of alternatives
-  * Max frequency count
-  */

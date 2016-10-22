@@ -13,7 +13,7 @@ import scala.collection.mutable
 class SimTree {
 
   /**
-    * Set of all nodes from which to start adding
+    * Set of all nodes from which starts adding
     */
   val rootNodes: mutable.Set[SimNode] = mutable.Set.empty
 
@@ -33,10 +33,14 @@ class SimTree {
   }
 
   /**
-    * Add new node to STree
+    * Add new node to STree,
+    * update <code>idToMap</code>,
+    * calculate statistic of node
     *
     * @param astNode              current node
     * @param alternativesOfParent option alternatives of parent node
+    * @param commonNodeStatistic  common statistic of current node (calculated in parent)
+    * @return statistic of current node
     */
   private def add(astNode: ASTNode,
                   alternativesOfParent: Option[NodeChildrenAlternatives[SimNode]],
@@ -50,6 +54,7 @@ class SimTree {
       case Some(p) ⇒
         updateAlternativesOfParent(p, nodeId, data)
       case None ⇒
+        data.addDifferentParentCount()
         val simNode = SimNode(nodeId, data)
         rootNodes += simNode
         simNode
@@ -61,13 +66,25 @@ class SimTree {
       childrenCount)
   }
 
+
+  /**
+    * Common method for calculating statistic,
+    * for leaf nodes just calculate statistic,
+    * for inner nodes calculate stastistic in children nodes
+    *
+    * @param simNode             current node
+    * @param commonNodeStatistic common statistic
+    * @param children            children of current node
+    * @param childrenCount       count of children
+    * @return statistic of node
+    */
   private def calcStatistic(simNode: SimNode,
                             commonNodeStatistic: CommonNodeStatistic,
                             children: Seq[ASTNode],
                             childrenCount: Int): NodeStatistic = {
     simNode match {
       case node: SimInnerNode ⇒
-        val childrenCommonNodeStatistic = calcCommonStatistic(commonNodeStatistic, childrenCount)
+        val childrenCommonNodeStatistic = calcCommonStatistic(commonNodeStatistic, childrenCount - 1)
         val childrenStat = children.zip(node.data.children).map {
           case (child, alternatives) ⇒
             add(child, Some(alternatives), childrenCommonNodeStatistic)
@@ -82,6 +99,14 @@ class SimTree {
     }
   }
 
+  /**
+    * Calculate statistic for inner node
+    *
+    * @param node                current node
+    * @param childrenStat        statistics of children nodes
+    * @param commonNodeStatistic common statistic
+    * @return node's statistic
+    */
   private def calcInnerNodeStatistic(node: SimInnerNode,
                                      childrenStat: Seq[NodeStatistic],
                                      commonNodeStatistic: CommonNodeStatistic): InnerNodeStatistic = {
@@ -100,25 +125,49 @@ class SimTree {
       innerCount = innerStat.size + innerStat.map(_.innerCount).sum,
       maxDegreeSubtree = childrenStat.size max innerStat.map(_.maxDegreeSubtree).reduceOption(_ max _).getOrElse(0),
       maxHeight = innerStat.map(_.maxHeight).reduceOption(_ max _).getOrElse(0) + 1,
-      minHeight = leafStat.headOption.map(_ ⇒ 1).getOrElse(innerStat.map(_.minHeight).min),
+      minHeight = leafStat.headOption.map(_ ⇒ 0).getOrElse(innerStat.map(_.minHeight).min) + 1,
       averageHeight = (leafStat.size + innerStat.map(_.averageHeight + 1).sum) / childrenStat.size,
       commonStatistic = commonNodeStatistic
     )
   }
 
+  /**
+    * Calculate statistic for leaf node
+    *
+    * @param nodeStatistic common statistic
+    * @param node          current node
+    * @return node's statistic
+    */
   private def calcLeafStatistic(nodeStatistic: CommonNodeStatistic,
                                 node: SimLeafNode): LeafNodeStatistic =
-    new LeafNodeStatistic(
-      textLength = node.nodeId.nodeText.value.length,
-      commonStatistic = nodeStatistic
-    )
+  new LeafNodeStatistic(
+    textLength = node.nodeId.nodeText.value.length,
+    commonStatistic = nodeStatistic
+  )
 
+  /**
+    * Calculate common statistic of current node
+    *
+    * @param parentCommonStatistic common statistic of parent
+    * @param siblingsCount         count of siblings
+    * @return common statistic of current node
+    */
   private def calcCommonStatistic(parentCommonStatistic: CommonNodeStatistic, siblingsCount: Int) =
-    new CommonNodeStatistic(
-      depth = parentCommonStatistic.depth + 1,
-      siblingsCount = siblingsCount
-    )
+  new CommonNodeStatistic(
+    depth = parentCommonStatistic.depth + 1,
+    siblingsCount = siblingsCount
+  )
 
+  /**
+    * Add current node to parent's alternatives
+    * if such node absent,
+    * or just return already associated with parent node
+    *
+    * @param alternativesOfParent parent's children alternatives
+    * @param nodeId               id of current node
+    * @param data                 data of current node
+    * @return node bounded with parent node
+    */
   private def updateAlternativesOfParent(alternativesOfParent: NodeChildrenAlternatives[SimNode],
                                          nodeId: NodeId,
                                          data: SimNodeData): SimNode = {
