@@ -9,7 +9,7 @@ import org.scalatest.{FlatSpec, Matchers}
   * Created by Dmitriy Baidin.
   */
 @RunWith(classOf[JUnitRunner])
-class StatTreeSpec extends FlatSpec with Matchers {
+class SimTreeStatSpec extends FlatSpec with Matchers {
 
   /**
     * 0
