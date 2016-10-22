@@ -48,11 +48,11 @@ class SimTree {
     val (childrenCount, children) = getChildren(astNode)
     val nodeId = getId(astNode, childrenCount)
 
-    val data = updateIdToDataMap(nodeId, childrenCount)
+    val data = putIfAbsentToIdToDataMap(nodeId, childrenCount)
 
     val simNode = alternativesOfParent match {
       case Some(p) ⇒
-        updateAlternativesOfParent(p, nodeId, data)
+        putIfAbsentToAlternatives(p, nodeId, data)
       case None ⇒
         data.addDifferentParentCount()
         val simNode = SimNode(nodeId, data)
@@ -70,7 +70,7 @@ class SimTree {
   /**
     * Common method for calculating statistic,
     * for leaf nodes just calculate statistic,
-    * for inner nodes calculate stastistic in children nodes
+    * for inner nodes calculate statistic in children nodes
     *
     * @param simNode             current node
     * @param commonNodeStatistic common statistic
@@ -168,9 +168,9 @@ class SimTree {
     * @param data                 data of current node
     * @return node bounded with parent node
     */
-  private def updateAlternativesOfParent(alternativesOfParent: NodeChildrenAlternatives[SimNode],
-                                         nodeId: NodeId,
-                                         data: SimNodeData): SimNode = {
+  private def putIfAbsentToAlternatives(alternativesOfParent: NodeChildrenAlternatives[SimNode],
+                                        nodeId: NodeId,
+                                        data: SimNodeData): SimNode = {
     alternativesOfParent.alternatives.get(nodeId) match {
       case Some(node) ⇒ node
       case None ⇒
@@ -189,7 +189,7 @@ class SimTree {
     * @param childrenCount count of children of this node
     * @return data of node
     */
-  private def updateIdToDataMap(nodeId: NodeId, childrenCount: Int): SimNodeData = idToData.get(nodeId) match {
+  private def putIfAbsentToIdToDataMap(nodeId: NodeId, childrenCount: Int): SimNodeData = idToData.get(nodeId) match {
     case Some(data) ⇒
       data.addOccurrence()
       data
