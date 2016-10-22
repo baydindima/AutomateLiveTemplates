@@ -49,27 +49,6 @@ class InnerNodeStatistic(val nodeCount: Int,
                          val averageHeight: Double,
                          val commonStatistic: CommonNodeStatistic) extends NodeStatistic
 
-
-/**
-  * list in [[edu.jetbrains.plugin.lt.finder.stree.SimNodeData]]
-  * STATISTICS FOR NODE IN AST-TREE
-  * Depth
-  * Siblings count ?
-  *
-  * Only for inner nodes:
-  * Subtree size
-  * Leaf count
-  * Inner count
-  * Max degree in subtree
-  * Max height
-  * Min height
-  * Average height
-  *
-  * Only for leaf nodes:
-  * Text length
-  *
-  */
-
 /**
   * field in [[edu.jetbrains.plugin.lt.finder.stree.SimNodeData]]
   * STATISTICS FOR NODE IN S-AST-TREE
@@ -80,18 +59,4 @@ class InnerNodeStatistic(val nodeCount: Int,
   * Child - alternative count
   * Alternative - occurrence count
   *
-  */
-
-
-/**
-  * field in [[edu.jetbrains.plugin.lt.finder.stree.SimTree]]
-  * TOTAL STATISTICS OF S-TREE
-  * Count of trees
-  * Count of different roots
-  * Count of nodes / count of occurrence
-  * Count of leafs / count of occurrence of leafs
-  * Count of inner nodes / count of occurrence of inner nodes
-  * Max count of alternatives
-  * Average count of alternatives
-  * Max frequency count
   */

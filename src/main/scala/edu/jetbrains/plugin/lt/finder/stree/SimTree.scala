@@ -22,6 +22,50 @@ class SimTree {
     */
   val idToData: mutable.Map[NodeId, SimNodeData] = mutable.Map.empty
 
+  /**
+    * Count of all tree which was added
+    */
+  var treeCount: Int = 0
+
+  /**
+    * Calculate statistic of generalized AST-Tree
+    *
+    * @return statistic of generalized AST-Tree
+    */
+  def calcTreeStatistic: SimTreeStatistic = {
+    val (leafNodeData, innerNodeData): (Seq[SimLeafNodeData], Seq[SimInnerNodeData]) =
+      ((List.empty[SimLeafNodeData], List.empty[SimInnerNodeData]) /: idToData) {
+        case ((ls, is), s) ⇒ s match {
+          case (id: InnerNodeId, data: SimInnerNodeData) ⇒
+            (ls, data :: is)
+          case (id: LeafNodeId, data: SimLeafNodeData) ⇒
+            (data :: ls, is)
+        }
+      }
+    val nodeCount = idToData.size
+    val occurrenceCount = idToData.map(_._2.getOccurrenceCount).sum
+    new SimTreeStatistic(
+      countOfTrees = treeCount,
+      countOfRoots = rootNodes.size,
+      innerNodeCount = innerNodeData.size,
+      occurrenceCountOfInnerNode = innerNodeData.map(_.getOccurrenceCount).sum,
+      leavesNodeCount = leafNodeData.size,
+      occurrenceCountOfLeafNode = leafNodeData.map(_.getOccurrenceCount).sum,
+      nodeCount = nodeCount,
+      occurrenceCountOfNode = occurrenceCount,
+      maxCountOfAlternatives = innerNodeData.map(d ⇒ d.children.map(alter ⇒ alter.alternatives.size).max).max,
+      averageCountOfAlternatives = {
+        val (count, sum) = innerNodeData.map(d ⇒
+          (d.children.length, d.children.map(alter ⇒ alter.alternatives.size).sum)).reduce { case (p1, p2) ⇒
+          (p1._1 + p2._1, p1._2 + p2._2)
+        }
+        sum / count.toDouble
+      },
+      maxOccurrenceCount = idToData.map(_._2.getOccurrenceCount).max,
+      averageOccurrenceCount = occurrenceCount / nodeCount.toDouble
+    )
+  }
+
 
   /**
     * Add new AST tree to STree
@@ -29,6 +73,7 @@ class SimTree {
     * @param astNode root node
     */
   def add(astNode: ASTNode): Unit = {
+    treeCount += 1
     add(astNode, None, CommonNodeStatistic.empty)
   }
 
@@ -126,7 +171,7 @@ class SimTree {
       maxDegreeSubtree = childrenStat.size max innerStat.map(_.maxDegreeSubtree).reduceOption(_ max _).getOrElse(0),
       maxHeight = innerStat.map(_.maxHeight).reduceOption(_ max _).getOrElse(0) + 1,
       minHeight = leafStat.headOption.map(_ ⇒ 0).getOrElse(innerStat.map(_.minHeight).min) + 1,
-      averageHeight = (leafStat.size + innerStat.map(_.averageHeight + 1).sum) / childrenStat.size,
+      averageHeight = (leafStat.size + innerStat.map(_.averageHeight + 1).sum) / childrenStat.size.toDouble,
       commonStatistic = commonNodeStatistic
     )
   }
