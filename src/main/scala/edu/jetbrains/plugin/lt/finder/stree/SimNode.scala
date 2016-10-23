@@ -29,11 +29,19 @@ object SimNode {
 class SimLeafNode(val nodeId: LeafNodeId,
                   val data: SimLeafNodeData) extends SimNode
 
+object SimLeafNode {
+  def unapply(arg: SimLeafNode): Option[(LeafNodeId, SimLeafNodeData)] = Some(arg.nodeId, arg.data)
+}
+
 /**
   * Class for description of inner nodes
   */
 class SimInnerNode(val nodeId: InnerNodeId,
                    val data: SimInnerNodeData) extends SimNode
+
+object SimInnerNode {
+  def unapply(arg: SimInnerNode): Option[(InnerNodeId, SimInnerNodeData)] = Some(arg.nodeId, arg.data)
+}
 
 /**
   * Base class for holding all data of node with certain nodeId

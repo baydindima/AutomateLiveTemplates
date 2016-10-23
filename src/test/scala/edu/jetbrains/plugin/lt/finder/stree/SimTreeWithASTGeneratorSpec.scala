@@ -50,6 +50,7 @@ class SimTreeWithASTGeneratorSpec extends FlatSpec with Matchers {
     tree.add(root)
     validateTreeStructure(tree)
 
+    // TODO: Add test for different parent count
 
     tree.idToData.size shouldEqual 5
     tree.idToData.values.map(_.getOccurrenceCount).sum shouldEqual 7
@@ -126,6 +127,7 @@ class SimTreeWithASTGeneratorSpec extends FlatSpec with Matchers {
           d.getOccurrenceCount shouldEqual 3
           d match {
             case d: SimInnerNodeData ⇒
+              // TODO: Add test for alterFreq
               d.children should have length 2
               d.children(0).alternatives should have size 2
               d.children(1).alternatives should have size 3
