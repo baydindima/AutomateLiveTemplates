@@ -56,8 +56,8 @@ class SimTree {
       maxCountOfAlternatives = innerNodeData.map(d ⇒ d.children.map(alter ⇒ alter.alternatives.size).max).max,
       averageCountOfAlternatives = {
         val (count, sum) = innerNodeData.map(d ⇒
-          (d.children.length, d.children.map(alter ⇒ alter.alternatives.size).sum)).reduce { case (p1, p2) ⇒
-          (p1._1 + p2._1, p1._2 + p2._2)
+          (d.children.length, d.children.map(alter ⇒ alter.alternatives.size).sum)).foldLeft((0, 0)) {
+          case (p1, p2) ⇒ (p1._1 + p2._1, p1._2 + p2._2)
         }
         sum / count.toDouble
       },

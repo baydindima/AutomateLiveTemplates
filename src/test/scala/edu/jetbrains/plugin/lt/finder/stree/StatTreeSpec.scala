@@ -11,26 +11,6 @@ import org.scalatest.{FlatSpec, Matchers}
 @RunWith(classOf[JUnitRunner])
 class StatTreeSpec extends FlatSpec with Matchers {
 
-  /**
-    * 0
-    * * * *
-    * *   *    *
-    * *     *       *
-    * *      *          *
-    * 1        2            2
-    * *        *            *
-    * *  *      * *          * *
-    * *    *     *  *         *  *
-    * *      *    *   *        *   *
-    * 3        4   3   1        1    3
-    * *        *
-    * * *      * *
-    * *  *     *  *
-    * *   *    *   *
-    * *    *   *    *
-    * *     *   *     *
-    * 3     3   3      4
-    */
   it should "calc statistics" in {
     import com.intellij.psi.impl.source.tree.JavaElementType._
     val generator = new ASTGenerator
