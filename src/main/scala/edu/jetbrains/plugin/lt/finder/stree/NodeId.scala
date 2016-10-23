@@ -1,5 +1,6 @@
 package edu.jetbrains.plugin.lt.finder.stree
 
+import com.intellij.lang.ASTNode
 import com.intellij.psi.tree.IElementType
 
 import scala.collection.mutable
@@ -10,6 +11,20 @@ import scala.collection.mutable
   */
 sealed abstract class NodeId() {
   def elementType: ElementType
+}
+
+object NodeId {
+  def apply(astNode: ASTNode, childrenCount: Int): NodeId = childrenCount match {
+    case 0 ⇒
+      LeafNodeId(
+        ElementType(astNode.getElementType),
+        NodeText(astNode.getText))
+    case n ⇒
+      InnerNodeId(
+        ElementType(astNode.getElementType),
+        ChildrenCount(n)
+      )
+  }
 }
 
 /**
@@ -53,8 +68,23 @@ case class ElementType(value: IElementType) extends AnyVal
   *
   * @param alternatives map which store info about node 2 link
   */
-class NodeChildrenAlternatives[T](val alternatives: mutable.Map[NodeId, T])
+class NodeChildrenAlternatives(val alternatives: mutable.Map[NodeId, SimNode],
+                               val alternativeFrequency: mutable.Map[NodeId, Int]) {
+  def putIfAbsent(node: SimNode): Boolean = {
+    alternatives.get(node.nodeId) match {
+      case Some(n) ⇒
+        alternativeFrequency(node.nodeId) = alternativeFrequency(node.nodeId) + 1
+        false
+      case None ⇒
+        alternativeFrequency.put(node.nodeId, 1)
+        alternatives.put(node.nodeId, node)
+        true
+    }
+  }
+}
 
 object NodeChildrenAlternatives {
-  def apply[T](): NodeChildrenAlternatives[T] = new NodeChildrenAlternatives[T](new mutable.HashMap[NodeId, T]())
+  def apply(): NodeChildrenAlternatives = new NodeChildrenAlternatives(
+    new mutable.HashMap[NodeId, SimNode](),
+    new mutable.HashMap[NodeId, Int]())
 }

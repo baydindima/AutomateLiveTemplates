@@ -42,7 +42,7 @@ sealed abstract class SimNodeData() {
   /**
     * Count of occurrence of node with certain nodeId in all AST-Trees
     */
-  private var occurrenceCount: Int = 1
+  private var occurrenceCount: Int = 0
   /**
     * Count of different parents of node with certain nodeId in all AST-Trees
     */
@@ -57,6 +57,15 @@ sealed abstract class SimNodeData() {
 
   def addDifferentParentCount(): Unit =
     differentParentCount += 1
+}
+
+object SimNodeData {
+  def apply(childrenCount: Int): SimNodeData = childrenCount match {
+    case 0 ⇒
+      SimLeafNodeData.empty
+    case n ⇒
+      SimInnerNodeData.empty(childrenCount)
+  }
 }
 
 /**
@@ -77,13 +86,13 @@ object SimLeafNodeData {
   * @param children   array which stores by index i alternatives for i-th child
   * @param statistics all statistics of nodes with such node id
   */
-class SimInnerNodeData(val children: Array[NodeChildrenAlternatives[SimNode]],
+class SimInnerNodeData(val children: Array[NodeChildrenAlternatives],
                        val statistics: ArrayBuffer[InnerNodeStatistic]) extends SimNodeData
 
 object SimInnerNodeData {
   def empty(childrenCount: Int): SimInnerNodeData =
     new SimInnerNodeData(
-      Array.fill[NodeChildrenAlternatives[SimNode]](childrenCount) {
+      Array.fill[NodeChildrenAlternatives](childrenCount) {
         NodeChildrenAlternatives()
       },
       new ArrayBuffer[InnerNodeStatistic]()

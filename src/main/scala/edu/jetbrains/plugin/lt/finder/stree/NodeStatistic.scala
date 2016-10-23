@@ -17,6 +17,11 @@ class CommonNodeStatistic(val depth: Int,
 
 object CommonNodeStatistic {
   def empty: CommonNodeStatistic = new CommonNodeStatistic(depth = 0, siblingsCount = 0)
+
+  def apply(parentCommonStatistic: CommonNodeStatistic, siblingsCount: Int) = new CommonNodeStatistic(
+    depth = parentCommonStatistic.depth + 1,
+    siblingsCount = siblingsCount
+  )
 }
 
 /**
@@ -27,6 +32,14 @@ object CommonNodeStatistic {
   */
 class LeafNodeStatistic(val textLength: Int,
                         val commonStatistic: CommonNodeStatistic) extends NodeStatistic
+
+object LeafNodeStatistic {
+  def apply(nodeStatistic: CommonNodeStatistic,
+            node: SimLeafNode): LeafNodeStatistic = new LeafNodeStatistic(
+    textLength = node.nodeId.nodeText.value.length,
+    commonStatistic = nodeStatistic
+  )
+}
 
 /**
   * Node characteristics for inner nodes
@@ -48,6 +61,31 @@ class InnerNodeStatistic(val nodeCount: Int,
                          val minHeight: Int,
                          val averageHeight: Double,
                          val commonStatistic: CommonNodeStatistic) extends NodeStatistic
+
+object InnerNodeStatistic {
+  def apply(childrenStat: Seq[NodeStatistic],
+            commonNodeStatistic: CommonNodeStatistic) = {
+    val (leafStat, innerStat): (Seq[LeafNodeStatistic], Seq[InnerNodeStatistic]) =
+      ((List.empty[LeafNodeStatistic], List.empty[InnerNodeStatistic]) /: childrenStat) {
+        case ((ls, is), s) ⇒ s match {
+          case stat: InnerNodeStatistic ⇒
+            (ls, stat :: is)
+          case stat: LeafNodeStatistic ⇒
+            (stat :: ls, is)
+        }
+      }
+    new InnerNodeStatistic(
+      nodeCount = leafStat.size + innerStat.size + innerStat.map(_.nodeCount).sum,
+      leafCount = leafStat.size + innerStat.map(_.leafCount).sum,
+      innerCount = innerStat.size + innerStat.map(_.innerCount).sum,
+      maxDegreeSubtree = childrenStat.size max innerStat.map(_.maxDegreeSubtree).reduceOption(_ max _).getOrElse(0),
+      maxHeight = innerStat.map(_.maxHeight).reduceOption(_ max _).getOrElse(0) + 1,
+      minHeight = leafStat.headOption.map(_ ⇒ 0).getOrElse(innerStat.map(_.minHeight).min) + 1,
+      averageHeight = (leafStat.size + innerStat.map(_.averageHeight + 1).sum) / childrenStat.size.toDouble,
+      commonStatistic = commonNodeStatistic
+    )
+  }
+}
 
 /**
   * field in [[edu.jetbrains.plugin.lt.finder.stree.SimNodeData]]
