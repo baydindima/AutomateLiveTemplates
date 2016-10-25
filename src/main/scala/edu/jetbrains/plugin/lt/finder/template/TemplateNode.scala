@@ -5,7 +5,7 @@ import edu.jetbrains.plugin.lt.finder.stree.{CommonNodeStatistic, InnerNodeStati
 /**
   * Created by Dmitriy Baidin.
   */
-abstract class TemplateNode()
+sealed abstract class TemplateNode
 
 
 class TemplateLeafNode(val nodeId: NodeId,
