@@ -27,11 +27,11 @@ class TemplateSearcher(val simTree: SimTree) {
     val templateWithRoots = getTemplateWithRoot.filter(_.template.templateStatistic.placeholderCount < 5)
     val validTemplates: Set[TemplateNode] = templateWithRoots.map(_.templateNode).toSet
 
-    def notContainParent(templateNode: TemplateNode): Boolean = {
-      templateNodeToParent.get(templateNode).exists(nodes ⇒ nodes.exists(validTemplates) || nodes.exists(notContainParent))
+    def containParent(templateNode: TemplateNode): Boolean = {
+      templateNodeToParent.get(templateNode).exists(nodes ⇒ nodes.exists(validTemplates) || nodes.exists(containParent))
     }
 
-    templateWithRoots.filter(template ⇒ notContainParent(template.templateNode)).map(_.template).sortBy(_.text.length)
+    templateWithRoots.filter(template ⇒ !containParent(template.templateNode)).map(_.template).sortBy(_.text.length)
   }
 
 

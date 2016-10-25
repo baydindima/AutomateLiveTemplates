@@ -8,7 +8,7 @@ class Template(val text: String,
 
 object Template {
   def apply(templates: Seq[Template]): Template =
-    new Template(templates.map(_.text).mkString, TemplateStatistic(templates.map(_.templateStatistic)))
+    new Template(templates.map(_.text).mkString(" "), TemplateStatistic(templates.map(_.templateStatistic)))
 }
 
 class TemplateStatistic(val placeholderCount: Int)
