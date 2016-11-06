@@ -57,7 +57,7 @@ public class TemplatesFindAction extends AnAction {
 
         Parameters parameters = ParametersDialog.showDialogAndGetParameters(project, mode);
         if (parameters == null) return;
-
+        long start = System.currentTimeMillis();
         List<Template> templates;
         switch (mode) {
             case CONTROL_STRUCTURES_FINDER:
@@ -69,6 +69,7 @@ public class TemplatesFindAction extends AnAction {
             default:
                 return;
         }
+        System.out.println("Time for extracting templates: " + (System.currentTimeMillis() - start));
         if (templates.size() != 0) {
             new TemplatesDialog(project, templates).show();
         } else {

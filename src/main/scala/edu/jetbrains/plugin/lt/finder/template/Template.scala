@@ -1,8 +1,13 @@
 package edu.jetbrains.plugin.lt.finder.template
 
+import com.intellij.openapi.fileTypes.FileType
+
 /**
   * Created by Dmitriy Baidin.
   */
+class TemplateWithFileType(val template: Template,
+                           val fileType: FileType)
+
 class Template(val text: String,
                val templateStatistic: TemplateStatistic)
 

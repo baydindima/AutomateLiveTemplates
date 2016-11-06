@@ -167,3 +167,15 @@ class SimTree {
   }
 
 }
+
+/**
+  * Maybe make idToData id → idToNode
+  * All text only in leaves?
+  * MORE TESTS!
+  * test of children frequency
+  * REWRITE TEMPLATE SEARCHER
+  * bad part with lazy array initialization maybe worth make lazy val?
+  *
+  * test for no dif from format
+  *
+  */

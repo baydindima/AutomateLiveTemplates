@@ -3,8 +3,8 @@ plugins {
 }
 
 apply plugin: 'org.jetbrains.intellij'
-apply plugin: 'java'
 apply plugin: 'scala'
+apply plugin: 'java'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
@@ -13,6 +13,9 @@ intellij {
     version '143.2370.31'
     pluginName 'Automate Live Templates'
 }
+
+sourceSets.main.scala.srcDir "src/main/java"
+sourceSets.main.java.srcDirs = []
 
 group 'edu.jetbrains.plugin.lt'
 version '1.0'
@@ -27,5 +30,9 @@ dependencies {
     testCompile 'org.scalatest:scalatest_2.11:3.0.0'
     testCompile 'org.scalamock:scalamock-scalatest-support_2.11:3.3.0'
 }
+
+//project.afterEvaluate {
+//    project.tasks.runIdea.jvmArgs += "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
+//}
 
 
