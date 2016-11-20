@@ -2,7 +2,9 @@
     <id>edu.jetbrains.plugin.lt</id>
     <name>Automate Live Templates</name>
     <version>1.0</version>
-    <vendor email="baidin.d1993@gmail.com" url="https://github.com/baydindima">DmitriyBaidin</vendor>
+    <vendor email="baidin.d1993@gmail.com" url="https://github.com/baydindima">
+        DmitriyBaidin
+    </vendor>
 
     <description><![CDATA[
     ]]></description>
@@ -26,7 +28,8 @@
     </extensionPoints>
 
     <extensions defaultExtensionNs="edu.jetbrains.plugin.lt">
-        <fileTypeTemplateFilter implementation="edu.jetbrains.plugin.lt.extensions.JavaFileTypeTemplateFilter"/>
+        <fileTypeTemplateFilter
+                implementation="edu.jetbrains.plugin.lt.extensions.JavaFileTypeTemplateFilter"/>
     </extensions>
 
     <application-components>
@@ -36,10 +39,13 @@
     </project-components>
 
     <actions>
-        <!--<action id="TemplatesFinder.ID" class="edu.jetbrains.plugin.lt.TemplatesFindAction" text="Find Templates"-->
-        <!--description="Find templates in project">-->
+        <!--<action id="TemplatesFinder2.ID"-->
+        <!--class="edu.jetbrains.plugin.lt.TemplatesFindAction"-->
+        <!--text="Find Templates (Old)"-->
+        <!--description="Find templates in project (Old)">-->
         <!--<add-to-group group-id="AnalyzeActions" anchor="last"/>-->
-        <!--<keyboard-shortcut keymap="$default" first-keystroke="shift ctrl alt MULTIPLY"/>-->
+        <!--<keyboard-shortcut keymap="$default"-->
+        <!--first-keystroke="shift ctrl alt MULTIPLY 1"/>-->
         <!--</action>-->
 
         <action id="TemplatesFinder.ID"
@@ -47,8 +53,10 @@
                 text="Find Templates"
                 description="Find templates in project">
             <add-to-group group-id="AnalyzeActions" anchor="last"/>
-            <keyboard-shortcut keymap="$default" first-keystroke="shift ctrl alt MULTIPLY"/>
+            <keyboard-shortcut keymap="$default"
+                               first-keystroke="shift ctrl alt MULTIPLY"/>
         </action>
+
     </actions>
 
 </idea-plugin>

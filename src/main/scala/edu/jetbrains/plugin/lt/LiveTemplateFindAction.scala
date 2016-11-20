@@ -7,8 +7,9 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.{PsiDirectory, PsiFile, PsiManager}
 import edu.jetbrains.plugin.lt.extensions.ep.FileTypeTemplateFilter
 import edu.jetbrains.plugin.lt.finder.stree.SimTree
-import edu.jetbrains.plugin.lt.finder.template.{TemplateSearcher, TemplateWithFileType}
+import edu.jetbrains.plugin.lt.finder.template.{DefaultSearchConfiguration, TemplateSearcher, TemplateWithFileType}
 import edu.jetbrains.plugin.lt.newui.TemplatesDialog
+import edu.jetbrains.plugin.lt.ui.NoTemplatesDialog
 
 import scala.collection.JavaConversions._
 
@@ -16,6 +17,7 @@ import scala.collection.JavaConversions._
   * Created by Dmitriy Baidin.
   */
 class LiveTemplateFindAction extends AnAction {
+  val MemorySize = 10
 
   override def actionPerformed(anActionEvent: AnActionEvent): Unit = {
     val project = anActionEvent.getProject
@@ -23,30 +25,37 @@ class LiveTemplateFindAction extends AnAction {
       return
     }
 
-
-
     val allFiles = getFiles(
       roots = ProjectRootManager.getInstance(project).getContentSourceRoots,
       psiManager = PsiManager.getInstance(project)
     )
-    val filters = FileTypeTemplateFilter.EP_NAME.getExtensions
-
-    //    val totalTemplates: ArrayBuffer[]
-
+    val filters = FileTypeTemplateFilter.EP_NAME
+      .getExtensions
+      .map(filter => filter.fileType ->
+        (filter.keywordsNotAnalyze ++ filter.keywordsNotShow).toSeq)
+      .toMap
 
     allFiles.groupBy(_.getFileType).foreach { case (fileType, files) =>
       val start = System.currentTimeMillis()
 
       val astNodes = files.map(_.getNode)
+      println(s"AstNodes count: ${astNodes.size}")
 
       val tree = new SimTree
       astNodes.foreach(tree.add)
-      val templateSearcher = new TemplateSearcher(tree)
-      val templates = templateSearcher.searchTemplate
+      val templateSearcher = new TemplateSearcher(tree,
+        DefaultSearchConfiguration,
+        filters.getOrElse(fileType, Seq.empty)
+      )
 
-      templates.foreach(x => println(x.text))
+      val templates = templateSearcher.searchTemplate
       println(s"Time for templates extracting: ${System.currentTimeMillis() - start}")
-      new TemplatesDialog(project, templates.map(new TemplateWithFileType(_, fileType))).show()
+      if (templates.nonEmpty) {
+        new TemplatesDialog(project, templates.map(new TemplateWithFileType(_, fileType))).show()
+      } else {
+        new NoTemplatesDialog(project).show()
+      }
+
     }
 
 

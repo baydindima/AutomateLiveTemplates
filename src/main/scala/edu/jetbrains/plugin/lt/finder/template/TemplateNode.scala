@@ -1,6 +1,6 @@
 package edu.jetbrains.plugin.lt.finder.template
 
-import edu.jetbrains.plugin.lt.finder.stree.{CommonNodeStatistic, InnerNodeStatistic, LeafNodeStatistic, NodeId}
+import edu.jetbrains.plugin.lt.finder.stree._
 
 /**
   * Created by Dmitriy Baidin.
@@ -8,10 +8,10 @@ import edu.jetbrains.plugin.lt.finder.stree.{CommonNodeStatistic, InnerNodeStati
 sealed abstract class TemplateNode
 
 
-class TemplateLeafNode(val nodeId: NodeId,
+class TemplateLeafNode(val nodeId: LeafNodeId,
                        val generalLeafStatistic: GeneralLeafNodeStatistic) extends TemplateNode
 
-class TemplateInnerNode(val nodeId: NodeId,
+class TemplateInnerNode(val nodeId: InnerNodeId,
                         val children: Array[TemplateNode],
                         val generalInnerNodeStatistic: GeneralInnerNodeStatistic) extends TemplateNode
 

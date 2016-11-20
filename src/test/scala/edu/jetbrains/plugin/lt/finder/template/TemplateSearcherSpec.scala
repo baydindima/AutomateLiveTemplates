@@ -1,6 +1,6 @@
 package edu.jetbrains.plugin.lt.finder.template
 
-import edu.jetbrains.plugin.lt.finder.stree.{ASTGenerator, SimTree, ChildrenCount => CC, ElementType => ET, TestInnerNode => IN, TestLeafNode => LN}
+import edu.jetbrains.plugin.lt.finder.stree.{ASTGenerator, NodeChildrenAlternatives, NodeId, SimTree, ChildrenCount => CC, ElementType => ET, TestInnerNode => IN, TestLeafNode => LN}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{FlatSpec, Matchers}
@@ -10,6 +10,28 @@ import org.scalatest.{FlatSpec, Matchers}
   */
 @RunWith(classOf[JUnitRunner])
 class TemplateSearcherSpec extends FlatSpec with Matchers {
+
+  object TestSearchConfig extends TemplateSearchConfiguration {
+    override def isPossibleTemplateRoot(templateNode: TemplateNode): Boolean =
+      templateNode match {
+        case node: TemplateInnerNode =>
+          node.generalInnerNodeStatistic.commonStatistic.occurrenceCount >= 2
+        case _ => false
+      }
+
+    override def isPossibleTemplate(root: TemplateNode, template: Template): Boolean = true
+
+    override def getMostLikelyChild(alternative: NodeChildrenAlternatives): Option[NodeId] = {
+      val totalCount = alternative.alternativeFrequency.values.sum
+      val max = alternative.alternativeFrequency.maxBy(_._2)
+
+      if (totalCount * 0.15 <= max._2) {
+        Some(max._1)
+      } else {
+        None
+      }
+    }
+  }
 
   it should "return templates " in {
     import com.intellij.psi.impl.source.tree.JavaElementType._
@@ -39,7 +61,7 @@ class TemplateSearcherSpec extends FlatSpec with Matchers {
       )
     )
     tree.add(root)
-    val templateSearcher = new TemplateSearcher(tree)
+    val templateSearcher = new TemplateSearcher(tree, TestSearchConfig, Seq.empty)
     val templates = templateSearcher.searchTemplate
 
     templates.map(_.text).head === "4 3"
@@ -76,7 +98,7 @@ class TemplateSearcherSpec extends FlatSpec with Matchers {
       )
     )
     tree.add(root)
-    val templateSearcher = new TemplateSearcher(tree)
+    val templateSearcher = new TemplateSearcher(tree, TestSearchConfig, Seq.empty)
     val templates = templateSearcher.searchTemplate
 
     templates should have size 1

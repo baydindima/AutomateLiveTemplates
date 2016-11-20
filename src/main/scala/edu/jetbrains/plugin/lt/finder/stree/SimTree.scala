@@ -10,7 +10,7 @@ import scala.collection.mutable
   * And alternatives of children if it is a non leaf node and text otherwise
   * Created by Dmitriy Baidin.
   */
-class SimTree {
+class SimTree() {
 
   /**
     * Set of all nodes from which starts adding

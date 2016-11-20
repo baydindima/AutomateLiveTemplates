@@ -16,13 +16,16 @@ object Template {
     new Template(templates.map(_.text).mkString(" "), TemplateStatistic(templates.map(_.templateStatistic)))
 }
 
-class TemplateStatistic(val placeholderCount: Int)
+class TemplateStatistic(val placeholderCount: Int,
+                        val nodeCount: Int)
 
 object TemplateStatistic {
-  def placeholder: TemplateStatistic = new TemplateStatistic(1)
+  def placeholder: TemplateStatistic = new TemplateStatistic(1, 1)
 
   def apply(statistics: Seq[TemplateStatistic]): TemplateStatistic =
-    new TemplateStatistic(statistics.map(_.placeholderCount).sum)
+    new TemplateStatistic(statistics.map(_.placeholderCount).sum,
+      statistics.map(_.nodeCount).sum + 1
+    )
 }
 
 
