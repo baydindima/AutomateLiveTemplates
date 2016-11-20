@@ -15,7 +15,7 @@ class SimTree() {
   /**
     * Set of all nodes from which starts adding
     */
-  val rootNodes: mutable.Set[SimNode] = mutable.Set.empty
+  val rootNodes: mutable.Set[NodeId] = mutable.Set.empty
 
   /**
     * Map to store node id → data
@@ -78,7 +78,7 @@ class SimTree() {
     val (node, _) = add(astNode, CommonNodeStatistic.empty)
 
     node.data.addDifferentParentCount()
-    rootNodes += node
+    rootNodes += node.nodeId
   }
 
   /**
