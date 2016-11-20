@@ -8,7 +8,7 @@ import com.intellij.psi.{PsiDirectory, PsiFile, PsiManager}
 import edu.jetbrains.plugin.lt.extensions.ep.FileTypeTemplateFilter
 import edu.jetbrains.plugin.lt.finder.stree.SimTree
 import edu.jetbrains.plugin.lt.finder.template.{DefaultSearchConfiguration, TemplateSearcher, TemplateWithFileType}
-import edu.jetbrains.plugin.lt.newui.{TemplatesDialog, TreeStatisticDialog}
+import edu.jetbrains.plugin.lt.newui.{TemplateRootsDialog, TemplatesDialog, TreeStatisticDialog}
 import edu.jetbrains.plugin.lt.ui.NoTemplatesDialog
 
 import scala.collection.JavaConversions._
@@ -52,6 +52,7 @@ class LiveTemplateFindAction extends AnAction {
 
       println(s"Time for templates extracting: ${System.currentTimeMillis() - start}")
       new TreeStatisticDialog(project, fileType, tree.calcTreeStatistic).show()
+      new TemplateRootsDialog(project, templateSearcher.possibleTemplateRoot.toSeq).show()
       if (templates.nonEmpty) {
         new TemplatesDialog(project, templates.map(new TemplateWithFileType(_, fileType))).show()
       } else {

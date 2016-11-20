@@ -5,22 +5,45 @@ import edu.jetbrains.plugin.lt.finder.stree._
 /**
   * Created by Dmitriy Baidin.
   */
-sealed abstract class TemplateNode
+sealed abstract class TemplateNode {
+  def getStatisticsString: String
+}
 
 
 class TemplateLeafNode(val nodeId: LeafNodeId,
-                       val generalLeafStatistic: GeneralLeafNodeStatistic) extends TemplateNode
+                       val generalLeafStatistic: GeneralLeafNodeStatistic) extends TemplateNode {
+  override def toString: String = s"Leaf node: ${nodeId.nodeText.value}"
+
+  override def getStatisticsString: String = generalLeafStatistic.toString
+}
 
 class TemplateInnerNode(val nodeId: InnerNodeId,
                         val children: Array[TemplateNode],
-                        val generalInnerNodeStatistic: GeneralInnerNodeStatistic) extends TemplateNode
+                        val generalInnerNodeStatistic: GeneralInnerNodeStatistic) extends TemplateNode {
+  override def toString: String =
+    s"Inner node: ${nodeId.elementType.value.toString} with children count ${nodeId.childrenCount.value}"
 
-object TemplatePlaceholder extends TemplateNode
+  override def getStatisticsString: String =
+    generalInnerNodeStatistic.toString
+}
+
+object TemplatePlaceholder extends TemplateNode {
+  override def toString: String = "PLACEHOLDER"
+
+  override def getStatisticsString: String = "PLACEHOLDER"
+}
 
 class GeneralCommonStatistic(val occurrenceCount: Int,
                              val differentParentCount: Int,
                              val averageDepth: Double,
-                             val averageSiblingsCount: Double)
+                             val averageSiblingsCount: Double) {
+  override def toString: String =
+    s"""Occurrence count: $occurrenceCount
+        |Different parent count: $differentParentCount
+        |Average depth: $averageDepth
+        |Average siblings count: $averageSiblingsCount
+    """.stripMargin
+}
 
 object GeneralCommonStatistic {
   def apply(occurrenceCount: Int,
@@ -42,7 +65,12 @@ object GeneralCommonStatistic {
 }
 
 class GeneralLeafNodeStatistic(val textLength: Int,
-                               commonStatistic: GeneralCommonStatistic)
+                               commonStatistic: GeneralCommonStatistic) {
+  override def toString: String =
+    s"""text length: $textLength
+        | $commonStatistic
+    """.stripMargin
+}
 
 object GeneralLeafNodeStatistic {
   def apply(occurrenceCount: Int,
@@ -69,7 +97,18 @@ class GeneralInnerNodeStatistic(val childrenCount: Int,
                                 val averageMaxHeight: Double,
                                 val averageMinHeight: Double,
                                 val generalAverageHeight: Double,
-                                val commonStatistic: GeneralCommonStatistic)
+                                val commonStatistic: GeneralCommonStatistic) {
+  override def toString: String =
+    s""" Children count: $childrenCount
+        | Average node count: $averageNodeCount
+        | Average leaf node count: $averageLeafCount
+        | Average inner node count: $averageInnerCount
+        | Average max height: $averageMaxHeight
+        | Average min height: $averageMinHeight
+        | General average height: $generalAverageHeight
+        | $commonStatistic
+    """.stripMargin
+}
 
 object GeneralInnerNodeStatistic {
   def apply(childrenCount: Int,

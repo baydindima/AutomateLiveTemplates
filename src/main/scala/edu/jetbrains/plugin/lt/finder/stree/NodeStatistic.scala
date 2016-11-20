@@ -60,7 +60,9 @@ class InnerNodeStatistic(val nodeCount: Int,
                          val maxHeight: Int,
                          val minHeight: Int,
                          val averageHeight: Double,
-                         val commonStatistic: CommonNodeStatistic) extends NodeStatistic
+                         val commonStatistic: CommonNodeStatistic) extends NodeStatistic {
+  override def toString: String = super.toString
+}
 
 object InnerNodeStatistic {
   def apply(childrenStat: Seq[NodeStatistic],
