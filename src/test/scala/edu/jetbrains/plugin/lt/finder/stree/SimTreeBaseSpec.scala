@@ -19,7 +19,7 @@ object SimTreeBaseSpec extends Matchers {
     sTree.idToData.foreach {
       case (id, data) => (id, data) match {
         case (i: InnerNodeId, d: SimInnerNodeData) =>
-          i.childrenCount.value shouldEqual d.children.length
+          i.childrenCount shouldEqual d.children.length
 
           d.children.length should be > 0
 

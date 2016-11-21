@@ -1,7 +1,7 @@
 package edu.jetbrains.plugin.lt.finder.stree
 
 import edu.jetbrains.plugin.lt.finder.stree.SimTreeBaseSpec._
-import edu.jetbrains.plugin.lt.finder.stree.{ChildrenCount => CC, ElementType => ET, NodeText => NT, TestInnerNode => IN, TestLeafNode => LN}
+import edu.jetbrains.plugin.lt.finder.stree.{TestInnerNode => IN, TestLeafNode => LN}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{FlatSpec, Matchers}
@@ -30,7 +30,7 @@ class SimTreeWithASTGeneratorSpec extends FlatSpec with Matchers {
       case (i, data) => (i, data) match {
         case (i: LeafNodeId, d: SimLeafNodeData) =>
           data.getOccurrenceCount == 2
-          i.nodeText.value == "test"
+          i.nodeText == "test"
         case _ => false
       }
     } should have size 1
@@ -57,20 +57,20 @@ class SimTreeWithASTGeneratorSpec extends FlatSpec with Matchers {
 
     tree.idToData.find {
       case (id, data) =>
-        id.elementType.value == METHOD
+        id.elementType == METHOD
     } match {
       case Some((id, data: SimInnerNodeData)) =>
         data.children should have length 2
         data.children(0).alternatives should have size 1
         data.children(0).alternatives should contain key
-          LeafNodeId(ET(BLOCK_STATEMENT), NT("element1"))
+          LeafNodeId(BLOCK_STATEMENT, "element1")
 
         data.children(1).alternatives should have size 2
         data.children(1).alternatives should contain key
-          LeafNodeId(ET(BLOCK_STATEMENT), NT("element2"))
+          LeafNodeId(BLOCK_STATEMENT, "element2")
 
         data.children(1).alternatives should contain key
-          LeafNodeId(ET(BLOCK_STATEMENT), NT("element3"))
+          LeafNodeId(BLOCK_STATEMENT, "element3")
 
       case _ => fail("should find element with this type")
     }
@@ -116,12 +116,12 @@ class SimTreeWithASTGeneratorSpec extends FlatSpec with Matchers {
     tree.idToData.values.map(_.getOccurrenceCount).sum shouldEqual 17
 
     // 3
-    tree.idToData.get(InnerNodeId(ET(METHOD_REF_EXPRESSION), CC(2)))
+    tree.idToData.get(InnerNodeId(METHOD_REF_EXPRESSION, 2))
       .map(d => d.getOccurrenceCount shouldEqual 2)
       .isDefined shouldEqual true
 
     // 2
-    tree.idToData.get(InnerNodeId(ET(METHOD_CALL_EXPRESSION), CC(2)))
+    tree.idToData.get(InnerNodeId(METHOD_CALL_EXPRESSION, 2))
       .map {
         d =>
           d.getOccurrenceCount shouldEqual 3
@@ -137,7 +137,7 @@ class SimTreeWithASTGeneratorSpec extends FlatSpec with Matchers {
       .isDefined shouldEqual true
 
     //4
-    tree.idToData.get(LeafNodeId(ET(ANNOTATION), NT("4")))
+    tree.idToData.get(LeafNodeId(ANNOTATION, "4"))
       .map(d => d.getOccurrenceCount shouldEqual 2)
       .isDefined shouldEqual true
   }

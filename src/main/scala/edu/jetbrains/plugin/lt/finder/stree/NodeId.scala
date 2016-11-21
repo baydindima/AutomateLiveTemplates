@@ -10,19 +10,19 @@ import scala.collection.mutable
   * Id should describe node, using in test for equality
   */
 sealed abstract class NodeId() {
-  def elementType: ElementType
+  def elementType: IElementType
 }
 
 object NodeId {
   def apply(astNode: ASTNode, childrenCount: Int): NodeId = childrenCount match {
     case 0 =>
       LeafNodeId(
-        ElementType(astNode.getElementType),
-        NodeText(astNode.getText.replaceAll(" +", " ")))
+        astNode.getElementType,
+        astNode.getText.replaceAll(" +", " "))
     case n =>
       InnerNodeId(
-        ElementType(astNode.getElementType),
-        ChildrenCount(n)
+        astNode.getElementType,
+        n
       )
   }
 }
@@ -33,8 +33,8 @@ object NodeId {
   * @param elementType   node type
   * @param childrenCount count of children
   */
-case class InnerNodeId(elementType: ElementType,
-                       childrenCount: ChildrenCount) extends NodeId
+case class InnerNodeId(elementType: IElementType,
+                       childrenCount: Int) extends NodeId
 
 /**
   * Identifier of leaf node
@@ -42,26 +42,8 @@ case class InnerNodeId(elementType: ElementType,
   * @param elementType node type
   * @param nodeText    text of node
   */
-case class LeafNodeId(elementType: ElementType,
-                      nodeText: NodeText) extends NodeId
-
-/**
-  * Value-class for storing children count
-  */
-case class ChildrenCount(value: Int) extends AnyVal
-
-
-/**
-  * Value-class for storing text of leaf node
-  */
-case class NodeText(value: String) extends AnyVal
-
-
-/**
-  * Value-class for storing ast node type
-  */
-case class ElementType(value: IElementType) extends AnyVal
-
+case class LeafNodeId(elementType: IElementType,
+                      nodeText: String) extends NodeId
 
 /**
   * Class for representing alternatives of children

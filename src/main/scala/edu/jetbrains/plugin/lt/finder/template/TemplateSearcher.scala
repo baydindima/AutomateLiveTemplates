@@ -54,7 +54,7 @@ class TemplateSearcher(val simTree: SimTree, configuration: TemplateSearchConfig
           nodeId = id,
           children = getChildrenStub(data.children.length),
           generalInnerNodeStatistic = GeneralInnerNodeStatistic(
-            childrenCount = id.childrenCount.value,
+            childrenCount = id.childrenCount,
             occurrenceCount = data.getOccurrenceCount,
             differentParentCount = data.getDifferentParentCount,
             innerNodeStatistic = data.statistic
