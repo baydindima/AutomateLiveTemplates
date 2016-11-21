@@ -15,11 +15,11 @@ sealed abstract class NodeId() {
 
 object NodeId {
   def apply(astNode: ASTNode, childrenCount: Int): NodeId = childrenCount match {
-    case 0 ⇒
+    case 0 =>
       LeafNodeId(
         ElementType(astNode.getElementType),
-        NodeText(astNode.getText))
-    case n ⇒
+        NodeText(astNode.getText.replaceAll(" +", " ")))
+    case n =>
       InnerNodeId(
         ElementType(astNode.getElementType),
         ChildrenCount(n)
@@ -72,10 +72,10 @@ class NodeChildrenAlternatives(val alternatives: mutable.Map[NodeId, SimNode],
                                val alternativeFrequency: mutable.Map[NodeId, Int]) {
   def putIfAbsent(node: SimNode): Boolean = {
     alternatives.get(node.nodeId) match {
-      case Some(n) ⇒
+      case Some(n) =>
         alternativeFrequency(node.nodeId) = alternativeFrequency(node.nodeId) + 1
         false
-      case None ⇒
+      case None =>
         alternativeFrequency.put(node.nodeId, 1)
         alternatives.put(node.nodeId, node)
         true

@@ -12,7 +12,7 @@ class LengthMaximumSpec extends ParameterTestBase {
     findJavaTemplates(
       getSearchParameters(
         Map(
-          Name.LENGTH_MAXIMUM → 10
+          Name.LENGTH_MAXIMUM -> 10
         )
       ),
       classText1
@@ -23,7 +23,7 @@ class LengthMaximumSpec extends ParameterTestBase {
     findJavaTemplates(
       getSearchParameters(
         Map(
-          Name.LENGTH_MAXIMUM → 1488
+          Name.LENGTH_MAXIMUM -> 1488
         )
       ),
       classText1

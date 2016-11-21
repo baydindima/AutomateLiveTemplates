@@ -11,7 +11,7 @@ class DepthMinimumSpec extends ParameterTestBase {
     findJavaTemplates(
       getSearchParameters(
         Map(
-          Name.DEPTH_MINIMUM → 10
+          Name.DEPTH_MINIMUM -> 10
         )
       ),
       classText1
@@ -22,7 +22,7 @@ class DepthMinimumSpec extends ParameterTestBase {
     findJavaTemplates(
       getSearchParameters(
         Map(
-          Name.DEPTH_MINIMUM → 5
+          Name.DEPTH_MINIMUM -> 5
         )
       ),
       classText1

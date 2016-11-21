@@ -10,7 +10,7 @@ class TemplatesToShowSpec extends ParameterTestBase {
     findJavaTemplates(
       getSearchParameters(
         Map(
-          Name.TEMPLATES_TO_SHOW → 1
+          Name.TEMPLATES_TO_SHOW -> 1
         )
       ),
       classText1,
@@ -21,7 +21,7 @@ class TemplatesToShowSpec extends ParameterTestBase {
     findJavaTemplates(
       getSearchParameters(
         Map(
-          Name.TEMPLATES_TO_SHOW → 2
+          Name.TEMPLATES_TO_SHOW -> 2
         )
 
       ),

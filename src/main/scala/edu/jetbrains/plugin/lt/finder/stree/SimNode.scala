@@ -1,7 +1,5 @@
 package edu.jetbrains.plugin.lt.finder.stree
 
-import scala.collection.mutable.ArrayBuffer
-
 /**
   * Class for aggregating id and data
   */
@@ -14,11 +12,11 @@ sealed abstract class SimNode {
 object SimNode {
   def apply(nodeId: NodeId,
             data: SimNodeData): SimNode = (nodeId, data) match {
-    case (id: LeafNodeId, d: SimLeafNodeData) ⇒
+    case (id: LeafNodeId, d: SimLeafNodeData) =>
       new SimLeafNode(id, d)
-    case (id: InnerNodeId, d: SimInnerNodeData) ⇒
+    case (id: InnerNodeId, d: SimInnerNodeData) =>
       new SimInnerNode(id, d)
-    case _ ⇒
+    case _ =>
       throw new RuntimeException(s"Id and data has incompatible types: $nodeId and $data")
   }
 }
@@ -69,33 +67,22 @@ sealed abstract class SimNodeData() {
 
 object SimNodeData {
   def apply(childrenCount: Int): SimNodeData = childrenCount match {
-    case 0 ⇒
+    case 0 =>
       SimLeafNodeData.empty
-    case n ⇒
+    case n =>
       SimInnerNodeData.empty(childrenCount)
   }
 }
 
-/**
-  * Data to children of leaf node, stores only occurrence count and statistics
-  *
-  * @param statistics all statistics of nodes with such node id
-  */
-class SimLeafNodeData(val statistics: ArrayBuffer[LeafNodeStatistic]) extends SimNodeData
+class SimLeafNodeData(val statistic: SimLeafNodeStatistic) extends SimNodeData
 
 object SimLeafNodeData {
-  def empty: SimLeafNodeData = new SimLeafNodeData(new ArrayBuffer[LeafNodeStatistic]())
+  def empty: SimLeafNodeData = new SimLeafNodeData(SimLeafNodeStatistic.empty)
 }
 
-/**
-  * Data of non leaf node, stores occurrence count,
-  * alternatives of children and statistics
-  *
-  * @param children   array which stores by index i alternatives for i-th child
-  * @param statistics all statistics of nodes with such node id
-  */
+
 class SimInnerNodeData(val children: Array[NodeChildrenAlternatives],
-                       val statistics: ArrayBuffer[InnerNodeStatistic]) extends SimNodeData
+                       val statistic: SimInnerNodeStatistic) extends SimNodeData
 
 object SimInnerNodeData {
   def empty(childrenCount: Int): SimInnerNodeData =
@@ -103,6 +90,7 @@ object SimInnerNodeData {
       Array.fill[NodeChildrenAlternatives](childrenCount) {
         NodeChildrenAlternatives()
       },
-      new ArrayBuffer[InnerNodeStatistic]()
+      SimInnerNodeStatistic.empty
     )
 }
+

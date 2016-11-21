@@ -22,20 +22,23 @@ object DefaultSearchConfiguration extends TemplateSearchConfiguration {
   val PlaceholderMaximum = 3
   val NodesMinimum = 8
   val MinimumDepth = 5
+  val PlaceholderToNodeRatio = 0.1
 
   override def isPossibleTemplateRoot(templateNode: TemplateNode): Boolean =
     templateNode match {
       case node: TemplateInnerNode =>
+        //        val statistic = node.generalInnerNodeStatistic
+        //        statistic.nodeStat.height.getAverage >= MinimumDepth &&
+        //          statistic.commonStatistic.occurrenceCount >= MatchesMinimum
         val statistic = node.generalInnerNodeStatistic
-        statistic.averageMaxHeight >= MinimumDepth &&
-          statistic.commonStatistic.occurrenceCount >= MatchesMinimum
+        statistic.commonStatistic.occurrenceCount >= MatchesMinimum
       case _ => false
     }
 
   override def isPossibleTemplate(root: TemplateNode,
                                   template: Template): Boolean =
-    template.templateStatistic.placeholderCount <= PlaceholderMaximum &&
-      template.templateStatistic.nodeCount >= NodesMinimum &&
+    template.templateStatistic.placeholderCount /
+      template.templateStatistic.nodeCount.toDouble <= PlaceholderToNodeRatio &&
       template.text.length >= LengthMinimum
 
 

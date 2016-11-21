@@ -10,7 +10,7 @@ class NodesMinimumTest extends ParameterTestBase {
     findJavaTemplates(
       getSearchParameters(
         Map(
-          Name.NODES_MINIMUM → 30
+          Name.NODES_MINIMUM -> 30
         )
       ),
       classText1
@@ -21,7 +21,7 @@ class NodesMinimumTest extends ParameterTestBase {
     findJavaTemplates(
       getSearchParameters(
         Map(
-          Name.NODES_MINIMUM → 5
+          Name.NODES_MINIMUM -> 5
         )
       ),
       classText1

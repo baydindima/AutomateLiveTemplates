@@ -18,7 +18,7 @@ class SimTree() {
   val rootNodes: mutable.Set[NodeId] = mutable.Set.empty
 
   /**
-    * Map to store node id → data
+    * Map to store node id -> data
     */
   val idToData: mutable.Map[NodeId, SimNodeData] = mutable.Map.empty
 
@@ -35,12 +35,12 @@ class SimTree() {
   def calcTreeStatistic: SimTreeStatistic = {
     val (leafNodeData, innerNodeData): (Seq[SimLeafNodeData], Seq[SimInnerNodeData]) =
       ((List.empty[SimLeafNodeData], List.empty[SimInnerNodeData]) /: idToData) {
-        case ((ls, is), s) ⇒ s match {
-          case (id: InnerNodeId, data: SimInnerNodeData) ⇒
+        case ((ls, is), s) => s match {
+          case (id: InnerNodeId, data: SimInnerNodeData) =>
             (ls, data :: is)
-          case (id: LeafNodeId, data: SimLeafNodeData) ⇒
+          case (id: LeafNodeId, data: SimLeafNodeData) =>
             (data :: ls, is)
-          case (id, data) ⇒ throw new RuntimeException(s"Incompatible types of id and data $id, $data")
+          case (id, data) => throw new RuntimeException(s"Incompatible types of id and data $id, $data")
         }
       }
     val nodeCount = idToData.size
@@ -54,11 +54,11 @@ class SimTree() {
       occurrenceCountOfLeafNode = leafNodeData.map(_.getOccurrenceCount).sum,
       nodeCount = nodeCount,
       occurrenceCountOfNode = occurrenceCount,
-      maxCountOfAlternatives = innerNodeData.map(d ⇒ d.children.map(alter ⇒ alter.alternatives.size).max).max,
+      maxCountOfAlternatives = innerNodeData.map(d => d.children.map(alter => alter.alternatives.size).max).max,
       averageCountOfAlternatives = {
-        val (count, sum) = innerNodeData.map(d ⇒
-          (d.children.length, d.children.map(alter ⇒ alter.alternatives.size).sum)).foldLeft((0, 0)) {
-          case (p1, p2) ⇒ (p1._1 + p2._1, p1._2 + p2._2)
+        val (count, sum) = innerNodeData.map(d =>
+          (d.children.length, d.children.map(alter => alter.alternatives.size).sum)).foldLeft((0, 0)) {
+          case (p1, p2) => (p1._1 + p2._1, p1._2 + p2._2)
         }
         sum / count.toDouble
       },
@@ -100,11 +100,11 @@ class SimTree() {
     val simNode = SimNode(nodeId, data)
 
     val stat = simNode match {
-      case node: SimInnerNode ⇒
+      case node: SimInnerNode =>
         val childrenCommonNodeStatistic = CommonNodeStatistic(commonNodeStatistic, childrenCount - 1)
 
         val childrenStat = children.zip(node.data.children).map {
-          case (child, alternatives) ⇒
+          case (child, alternatives) =>
             val (childNode, childStat) = add(child, childrenCommonNodeStatistic)
 
             if (alternatives.putIfAbsent(childNode)) {
@@ -115,11 +115,11 @@ class SimTree() {
         }
 
         val stat = InnerNodeStatistic(childrenStat, commonNodeStatistic)
-        node.data.statistics += stat
+        node.data.statistic += stat
         stat
-      case node: SimLeafNode ⇒
-        val stat = LeafNodeStatistic(commonNodeStatistic, node)
-        node.data.statistics += stat
+      case node: SimLeafNode =>
+        val stat = LeafNodeStatistic(commonNodeStatistic)
+        node.data.statistic += stat
         stat
     }
 
@@ -128,17 +128,17 @@ class SimTree() {
 
   /**
     * Update id to data map,
-    * Put if absent id → data
+    * Put if absent id -> data
     *
     * @param nodeId        id of node
     * @param childrenCount count of children of this node
     * @return data of node
     */
   private def putIfAbsentToIdToDataMap(nodeId: NodeId, childrenCount: Int): SimNodeData = idToData.get(nodeId) match {
-    case Some(data) ⇒
+    case Some(data) =>
       data.addOccurrence()
       data
-    case None ⇒
+    case None =>
       val data = SimNodeData(childrenCount)
       data.addOccurrence()
       idToData.put(nodeId, data)
@@ -169,7 +169,7 @@ class SimTree() {
 }
 
 /**
-  * Maybe make idToData id → idToNode
+  * Maybe make idToData id -> idToNode
   * All text only in leaves?
   * MORE TESTS!
   * test of children frequency

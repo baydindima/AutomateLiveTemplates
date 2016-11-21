@@ -27,8 +27,8 @@ class SimTreeStatistic(val countOfTrees: Int,
        |Node count:                         $nodeCount
        |Occurrence count of nodes:          $occurrenceCountOfNode
        |Max count of alternatives:          $maxCountOfAlternatives
-       |Average count of alternatives:      $averageCountOfAlternatives
+       |Average count of alternatives:      ${"%.3f".format(averageCountOfAlternatives)}
        |Max occurrence count:               $maxOccurrenceCount
-       |Average occurrence count:           $averageOccurrenceCount
+       |Average occurrence count:           ${"%.3f".format(averageOccurrenceCount)}
     """.stripMargin
 }

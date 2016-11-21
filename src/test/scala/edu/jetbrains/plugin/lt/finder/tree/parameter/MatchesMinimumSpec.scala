@@ -11,7 +11,7 @@ class MatchesMinimumSpec extends ParameterTestBase {
     findJavaTemplates(
       getSearchParameters(
         Map(
-          Name.MATCHES_MINIMUM → 6
+          Name.MATCHES_MINIMUM -> 6
         )
       ),
       classText1
@@ -23,7 +23,7 @@ class MatchesMinimumSpec extends ParameterTestBase {
     findJavaTemplates(
       getSearchParameters(
         Map(
-          Name.MATCHES_MINIMUM → 5
+          Name.MATCHES_MINIMUM -> 5
         )
       ),
       classText1

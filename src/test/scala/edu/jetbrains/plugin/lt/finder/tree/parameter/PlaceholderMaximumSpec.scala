@@ -11,7 +11,7 @@ class PlaceholderMaximumSpec extends ParameterTestBase {
     findJavaTemplates(
       getSearchParameters(
         Map(
-          Name.PLACEHOLDERS_MAXIMUM → 1
+          Name.PLACEHOLDERS_MAXIMUM -> 1
         )
       ),
       classText2
@@ -22,7 +22,7 @@ class PlaceholderMaximumSpec extends ParameterTestBase {
     findJavaTemplates(
       getSearchParameters(
         Map(
-          Name.PLACEHOLDERS_MAXIMUM → 3
+          Name.PLACEHOLDERS_MAXIMUM -> 3
         )
       ),
       classText2

@@ -27,11 +27,11 @@ class SimTreeWithASTGeneratorSpec extends FlatSpec with Matchers {
     validateTreeStructure(tree)
 
     tree.idToData.filter {
-      case (i, data) ⇒ (i, data) match {
-        case (i: LeafNodeId, d: SimLeafNodeData) ⇒
+      case (i, data) => (i, data) match {
+        case (i: LeafNodeId, d: SimLeafNodeData) =>
           data.getOccurrenceCount == 2
           i.nodeText.value == "test"
-        case _ ⇒ false
+        case _ => false
       }
     } should have size 1
   }
@@ -56,10 +56,10 @@ class SimTreeWithASTGeneratorSpec extends FlatSpec with Matchers {
     tree.idToData.values.map(_.getOccurrenceCount).sum shouldEqual 7
 
     tree.idToData.find {
-      case (id, data) ⇒
+      case (id, data) =>
         id.elementType.value == METHOD
     } match {
-      case Some((id, data: SimInnerNodeData)) ⇒
+      case Some((id, data: SimInnerNodeData)) =>
         data.children should have length 2
         data.children(0).alternatives should have size 1
         data.children(0).alternatives should contain key
@@ -72,7 +72,7 @@ class SimTreeWithASTGeneratorSpec extends FlatSpec with Matchers {
         data.children(1).alternatives should contain key
           LeafNodeId(ET(BLOCK_STATEMENT), NT("element3"))
 
-      case _ ⇒ fail("should find element with this type")
+      case _ => fail("should find element with this type")
     }
   }
 
@@ -117,28 +117,28 @@ class SimTreeWithASTGeneratorSpec extends FlatSpec with Matchers {
 
     // 3
     tree.idToData.get(InnerNodeId(ET(METHOD_REF_EXPRESSION), CC(2)))
-      .map(d ⇒ d.getOccurrenceCount shouldEqual 2)
+      .map(d => d.getOccurrenceCount shouldEqual 2)
       .isDefined shouldEqual true
 
     // 2
     tree.idToData.get(InnerNodeId(ET(METHOD_CALL_EXPRESSION), CC(2)))
       .map {
-        d ⇒
+        d =>
           d.getOccurrenceCount shouldEqual 3
           d match {
-            case d: SimInnerNodeData ⇒
+            case d: SimInnerNodeData =>
               // TODO: Add test for alterFreq
               d.children should have length 2
               d.children(0).alternatives should have size 2
               d.children(1).alternatives should have size 3
-            case _ ⇒ fail("Wrong type of inner node data")
+            case _ => fail("Wrong type of inner node data")
           }
       }
       .isDefined shouldEqual true
 
     //4
     tree.idToData.get(LeafNodeId(ET(ANNOTATION), NT("4")))
-      .map(d ⇒ d.getOccurrenceCount shouldEqual 2)
+      .map(d => d.getOccurrenceCount shouldEqual 2)
       .isDefined shouldEqual true
   }
 

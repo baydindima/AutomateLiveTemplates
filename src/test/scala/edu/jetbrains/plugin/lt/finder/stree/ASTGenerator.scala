@@ -22,9 +22,9 @@ class ASTGenerator extends FlatSpec with MockFactory {
 
     elem.getTreeNext _ when() returning {
       siblings.headOption match {
-        case Some(head) ⇒
+        case Some(head) =>
           buildNode(head, siblings.tail)
-        case None ⇒
+        case None =>
           null
       }
     }
@@ -39,9 +39,9 @@ class ASTGenerator extends FlatSpec with MockFactory {
 
     elem.getTreeNext _ when() returning {
       siblings.headOption match {
-        case Some(head) ⇒
+        case Some(head) =>
           buildNode(head, siblings.tail)
-        case None ⇒
+        case None =>
           null
       }
     }
@@ -50,8 +50,8 @@ class ASTGenerator extends FlatSpec with MockFactory {
   }
 
   private def buildNode(testNode: TestNode, siblings: Seq[TestNode]): ASTNode = testNode match {
-    case t: TestInnerNode ⇒ buildInnerNode(t, siblings)
-    case t: TestLeafNode ⇒ buildLeafNode(t, siblings)
+    case t: TestInnerNode => buildInnerNode(t, siblings)
+    case t: TestLeafNode => buildLeafNode(t, siblings)
   }
 }
 

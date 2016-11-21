@@ -25,6 +25,8 @@ repositories {
 }
 
 dependencies {
+    compile group: 'org.graphstream', name: 'gs-core', version: '1.1.1'
+    compile 'de.sciss:prefuse-core:1.0.1'
     compile 'org.scala-lang:scala-library:2.11.8'
     testCompile 'junit:junit:4.12'
     testCompile 'org.scalatest:scalatest_2.11:3.0.0'
@@ -33,7 +35,7 @@ dependencies {
 
 project.afterEvaluate {
 //    project.tasks.runIdea.jvmArgs += "-Xmx2000m -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
-    project.tasks.runIdea.jvmArgs += "-Xmx4000m"
+    project.tasks.runIdea.jvmArgs += "-Xmx7000m"
 }
 
 

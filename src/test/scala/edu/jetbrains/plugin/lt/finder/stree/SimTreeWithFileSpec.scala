@@ -62,7 +62,7 @@ class SimTreeWithFileSpec extends LightCodeInsightFixtureTestCase {
 
   def testSTreeBuild(): Unit = {
     val tree = new SimTree
-    buildJavaPsiFiles(classText1, classText2).map(_.getNode).foreach { node ⇒
+    buildJavaPsiFiles(classText1, classText2).map(_.getNode).foreach { node =>
       tree.add(node)
       validateTreeStructure(tree)
     }

@@ -7,8 +7,8 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.{PsiDirectory, PsiFile, PsiManager}
 import edu.jetbrains.plugin.lt.extensions.ep.FileTypeTemplateFilter
 import edu.jetbrains.plugin.lt.finder.stree.SimTree
-import edu.jetbrains.plugin.lt.finder.template.{DefaultSearchConfiguration, TemplateSearcher, TemplateWithFileType}
-import edu.jetbrains.plugin.lt.newui.{TemplateRootsDialog, TemplatesDialog, TreeStatisticDialog}
+import edu.jetbrains.plugin.lt.finder.template._
+import edu.jetbrains.plugin.lt.newui.TemplatesDialog
 import edu.jetbrains.plugin.lt.ui.NoTemplatesDialog
 
 import scala.collection.JavaConversions._
@@ -25,6 +25,8 @@ class LiveTemplateFindAction extends AnAction {
       return
     }
 
+    //    new TreeVisualiser2().displayGraph
+
     val allFiles = getFiles(
       roots = ProjectRootManager.getInstance(project).getContentSourceRoots,
       psiManager = PsiManager.getInstance(project)
@@ -36,29 +38,36 @@ class LiveTemplateFindAction extends AnAction {
       .toMap
 
     allFiles.groupBy(_.getFileType).foreach { case (fileType, files) =>
-      val start = System.currentTimeMillis()
+      val astNodes = files.map(_.getNode).filter(_ != null)
+      if (astNodes.nonEmpty) {
+        println(s"File type ${fileType.getName}")
+        println(s"AstNodes count: ${astNodes.size}")
 
-      val astNodes = files.map(_.getNode)
-      println(s"AstNodes count: ${astNodes.size}")
+        val start = System.currentTimeMillis()
 
-      val tree = new SimTree
-      astNodes.foreach(tree.add)
-      val templateSearcher = new TemplateSearcher(tree,
-        DefaultSearchConfiguration,
-        filters.getOrElse(fileType, Seq.empty)
-      )
+        val tree = new SimTree
+        astNodes.foreach(node => {
+          tree.add(node)
+        })
 
-      val templates = templateSearcher.searchTemplate
 
-      println(s"Time for templates extracting: ${System.currentTimeMillis() - start}")
-      new TreeStatisticDialog(project, fileType, tree.calcTreeStatistic).show()
-      new TemplateRootsDialog(project, templateSearcher.possibleTemplateRoot.toSeq).show()
-      if (templates.nonEmpty) {
-        new TemplatesDialog(project, templates.map(new TemplateWithFileType(_, fileType))).show()
-      } else {
-        new NoTemplatesDialog(project).show()
+
+        val templateSearcher = new TemplateSearcher(tree,
+          DefaultSearchConfiguration,
+          filters.getOrElse(fileType, Seq.empty)
+        )
+
+        val templates = templateSearcher.searchTemplate
+
+        println(s"Time for templates extracting: ${System.currentTimeMillis() - start}")
+        //        new TreeStatisticDialog(project, fileType, tree.calcTreeStatistic).show()
+        //        new TemplateRootsDialog(project, templateSearcher.possibleTemplateRoot.toSeq).show()
+        if (templates.nonEmpty) {
+          new TemplatesDialog(project, templates.map(new TemplateWithFileType(_, fileType))).show()
+        } else {
+          new NoTemplatesDialog(project).show()
+        }
       }
-
     }
 
 
