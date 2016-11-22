@@ -94,7 +94,7 @@ class TemplateSearcher(val simTree: SimTree, configuration: TemplateSearchConfig
         case None =>
           templateNode match {
             case leaf: TemplateLeafNode =>
-              val template = new Template(leaf.nodeId.nodeText.value, new TemplateStatistic(0, 1))
+              val template = new Template(leaf.nodeId.nodeText, new TemplateStatistic(0, 1))
               templateNodeToTemplate += (leaf -> template)
               template
             case inner: TemplateInnerNode =>

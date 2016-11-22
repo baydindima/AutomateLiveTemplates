@@ -12,7 +12,7 @@ sealed abstract class TemplateNode {
 
 class TemplateLeafNode(val nodeId: LeafNodeId,
                        val generalLeafStatistic: GeneralLeafNodeStatistic) extends TemplateNode {
-  override def toString: String = s"Leaf node: ${nodeId.nodeText.value}"
+  override def toString: String = s"Leaf node: ${nodeId.nodeText}"
 
   override def getStatisticsString: String = generalLeafStatistic.toString
 }
@@ -21,7 +21,7 @@ class TemplateInnerNode(val nodeId: InnerNodeId,
                         val children: Array[TemplateNode],
                         val generalInnerNodeStatistic: GeneralInnerNodeStatistic) extends TemplateNode {
   override def toString: String =
-    s"Inner node: ${nodeId.elementType.value.toString} with children count ${nodeId.childrenCount.value}"
+    s"Inner node: ${nodeId.elementType.toString} with children count ${nodeId.childrenCount}"
 
   override def getStatisticsString: String =
     generalInnerNodeStatistic.toString
@@ -70,7 +70,7 @@ object GeneralLeafNodeStatistic {
             leafNodeId: LeafNodeId,
             leafNodeStatistic: SimLeafNodeStatistic): GeneralLeafNodeStatistic = {
     new GeneralLeafNodeStatistic(
-      textLength = leafNodeId.nodeText.value.length,
+      textLength = leafNodeId.nodeText.length,
       commonStatistic = GeneralCommonStatistic(occurrenceCount,
         differentParentCount,
         leafNodeStatistic.commonStatistic

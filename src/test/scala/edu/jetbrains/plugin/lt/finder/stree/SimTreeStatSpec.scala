@@ -1,6 +1,6 @@
 package edu.jetbrains.plugin.lt.finder.stree
 
-import edu.jetbrains.plugin.lt.finder.stree.{ChildrenCount => CC, ElementType => ET, TestInnerNode => IN, TestLeafNode => LN}
+import edu.jetbrains.plugin.lt.finder.stree.{TestInnerNode => IN, TestLeafNode => LN}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{FlatSpec, Matchers}
