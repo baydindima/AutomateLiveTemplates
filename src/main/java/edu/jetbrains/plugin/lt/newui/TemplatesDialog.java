@@ -11,7 +11,7 @@ import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBPanel;
 import com.intellij.ui.components.JBTextField;
 import com.intellij.ui.components.panels.HorizontalLayout;
-import edu.jetbrains.plugin.lt.finder.template.TemplateWithFileType;
+import edu.jetbrains.plugin.lt.finder.common.TemplateWithFileType;
 import edu.jetbrains.plugin.lt.util.TemplateOps;
 import org.jetbrains.annotations.Nullable;
 

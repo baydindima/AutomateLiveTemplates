@@ -6,6 +6,7 @@ import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.{PsiDirectory, PsiFile, PsiManager}
 import edu.jetbrains.plugin.lt.extensions.ep.FileTypeTemplateFilter
+import edu.jetbrains.plugin.lt.finder.common.TemplateWithFileType
 import edu.jetbrains.plugin.lt.finder.stree.SimTree
 import edu.jetbrains.plugin.lt.finder.template._
 import edu.jetbrains.plugin.lt.newui.TemplatesDialog

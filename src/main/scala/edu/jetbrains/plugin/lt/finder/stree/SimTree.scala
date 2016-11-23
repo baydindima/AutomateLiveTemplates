@@ -1,6 +1,7 @@
 package edu.jetbrains.plugin.lt.finder.stree
 
 import com.intellij.lang.ASTNode
+import edu.jetbrains.plugin.lt.finder.common.{InnerNodeId, LeafNodeId, NodeId}
 
 import scala.collection.mutable
 

@@ -1,6 +1,7 @@
 package edu.jetbrains.plugin.lt.finder.template
 
-import edu.jetbrains.plugin.lt.finder.stree.{NodeChildrenAlternatives, NodeId}
+import edu.jetbrains.plugin.lt.finder.common.{NodeId, Template}
+import edu.jetbrains.plugin.lt.finder.stree.NodeChildrenAlternatives
 
 /**
   * Contains functions and predicates

@@ -1,9 +1,10 @@
 package edu.jetbrains.plugin.lt.finder.sstree
 
 import com.intellij.lang.ASTNode
-import edu.jetbrains.plugin.lt.finder.stree.{InnerNodeId, LeafNodeId, NodeId}
+import edu.jetbrains.plugin.lt.finder.common.{InnerNodeId, LeafNodeId, NodeId}
 
 import scala.collection.mutable
+
 
 /**
   * SufTree for astTree
@@ -99,28 +100,10 @@ final class SufSimTree {
     def nodeId: NodeId
   }
 
-  sealed trait NodeInfo {
-    def stat: NodeStat
-  }
-
   final class InnerNode(val nodeId: NodeId,
                         val children: List[Node]) extends Node
 
   final class Leaf(val nodeId: NodeId) extends Node
-
-  final class LeafNodeInfo(val stat: NodeStat) extends NodeInfo
-
-  final class InnerNodeInfo(val stat: NodeStat,
-                            val childrenAlternatives: mutable.Map[List[NodeId], List[NodeInfo]]) extends NodeInfo
-
-  final class NodeStat {
-    var occurrenceCount: Int = 0
-
-    def ++ = {
-      occurrenceCount += 1
-      this
-    }
-  }
 
   object LeafNodeInfo {
     def empty: LeafNodeInfo = new LeafNodeInfo(new NodeStat)

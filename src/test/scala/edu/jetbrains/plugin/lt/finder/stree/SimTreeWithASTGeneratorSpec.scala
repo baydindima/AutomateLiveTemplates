@@ -1,5 +1,6 @@
 package edu.jetbrains.plugin.lt.finder.stree
 
+import edu.jetbrains.plugin.lt.finder.common.{InnerNodeId, LeafNodeId}
 import edu.jetbrains.plugin.lt.finder.stree.SimTreeBaseSpec._
 import edu.jetbrains.plugin.lt.finder.stree.{TestInnerNode => IN, TestLeafNode => LN}
 import org.junit.runner.RunWith

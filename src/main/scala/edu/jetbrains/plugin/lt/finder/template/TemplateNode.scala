@@ -1,5 +1,6 @@
 package edu.jetbrains.plugin.lt.finder.template
 
+import edu.jetbrains.plugin.lt.finder.common.{InnerNodeId, LeafNodeId}
 import edu.jetbrains.plugin.lt.finder.stree._
 
 /**

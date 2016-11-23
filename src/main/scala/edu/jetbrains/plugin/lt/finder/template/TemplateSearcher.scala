@@ -1,5 +1,6 @@
 package edu.jetbrains.plugin.lt.finder.template
 
+import edu.jetbrains.plugin.lt.finder.common.{NodeId, PlaceholderTemplate, Template, TemplateStatistic}
 import edu.jetbrains.plugin.lt.finder.stree._
 
 import scala.collection.mutable

@@ -1,5 +1,7 @@
 package edu.jetbrains.plugin.lt.finder.stree
 
+import edu.jetbrains.plugin.lt.finder.common.{InnerNodeId, LeafNodeId, NodeId}
+
 /**
   * Class for aggregating id and data
   */

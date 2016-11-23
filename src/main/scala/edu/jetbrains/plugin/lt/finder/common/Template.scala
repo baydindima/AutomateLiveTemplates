@@ -1,4 +1,4 @@
-package edu.jetbrains.plugin.lt.finder.template
+package edu.jetbrains.plugin.lt.finder.common
 
 import com.intellij.openapi.fileTypes.FileType
 
@@ -29,6 +29,4 @@ object TemplateStatistic {
 }
 
 
-object PlaceholderTemplate extends Template("###", TemplateStatistic.placeholder) {
-
-}
+object PlaceholderTemplate extends Template("###", TemplateStatistic.placeholder)

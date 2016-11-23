@@ -1,5 +1,6 @@
 package edu.jetbrains.plugin.lt.finder.stree
 
+import edu.jetbrains.plugin.lt.finder.common.{InnerNodeId, LeafNodeId}
 import org.scalatest.Matchers
 
 /**
