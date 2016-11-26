@@ -18,10 +18,10 @@ trait TemplateSearchConfiguration {
 
 object DefaultSearchConfiguration extends TemplateSearchConfiguration {
   val MatchesMinimum = 10
-  val LengthMinimum = 36
+  val LengthMinimum = 30
   val PlaceholderMaximum = 3
-  val NodesMinimum = 8
-  val PlaceholderToNodeRatio = 0.1
+  val NodesMinimum = 3
+  val PlaceholderToNodeRatio = 0.5
 
   override def isPossibleTemplateRoot(possibleTemplateRoot: NodeInfo): Boolean =
     possibleTemplateRoot match {
@@ -31,8 +31,9 @@ object DefaultSearchConfiguration extends TemplateSearchConfiguration {
     }
 
   override def isPossibleTemplate(template: Template): Boolean =
-    (template.templateStatistic.placeholderCount /
-      template.templateStatistic.nodeCount.toDouble) <= PlaceholderToNodeRatio &&
+    template.templateStatistic.placeholderCount <= PlaceholderMaximum &&
+      (template.templateStatistic.placeholderCount /
+        template.templateStatistic.nodeCount.toDouble) <= PlaceholderToNodeRatio &&
       template.templateStatistic.nodeCount >= NodesMinimum &&
       template.text.length >= LengthMinimum
 
