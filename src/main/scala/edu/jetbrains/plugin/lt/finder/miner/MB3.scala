@@ -124,15 +124,15 @@ class MB3 {
 
       val dictNode: DictionaryNode =
         if (shouldAnalyze && freqNodes(nodeId)) {
-        new Node(
-          nodeId = nodeId,
-          depth = curDepth,
-          parentPos = parentPos)
-      } else {
-        new DictionaryPlaceholder(
-          depth = curDepth,
-          parentPos = parentPos)
-      }
+          new Node(
+            nodeId = nodeId,
+            depth = curDepth,
+            parentPos = parentPos)
+        } else {
+          new DictionaryPlaceholder(
+            depth = curDepth,
+            parentPos = parentPos)
+        }
 
       result += dictNode
       if (shouldAnalyze) {
@@ -461,17 +461,28 @@ case class TreeEncoding(encodeList: List[PathNode]) {
 
   def getTemplate: Template = {
     var placeholderCount = 0
+    var parenthesisCount = 0
     var nodeCount = 0
     val text = getCompressedEncodeList.map {
       case EncodeNode(leaf: LeafNodeId) =>
         nodeCount += 1
+        if (leaf.nodeText == "(") {
+          parenthesisCount += 1
+        } else if (leaf.nodeText == ")") {
+          parenthesisCount -= 1
+        }
         leaf.nodeText
       case Placeholder =>
         placeholderCount += 1
         " #_# "
       case _ => ""
     }.mkString
-    new Template(text, new TemplateStatistic(placeholderCount, nodeCount))
+    if (parenthesisCount >= 1) {
+      new Template(text + " #_# " + (")" * parenthesisCount), new TemplateStatistic(placeholderCount, nodeCount))
+    } else {
+      new Template(text, new TemplateStatistic(placeholderCount, nodeCount))
+    }
+
   }
 
 }

@@ -3,51 +3,31 @@ package edu.jetbrains.plugin.lt.finder.miner
 import com.intellij.ide.highlighter.JavaFileType
 import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.LightCodeInsightFixtureTestCase
+import org.scalatest.Matchers
 
 /**
   * Test for MB3 algorithm
   */
-class MB3Spec extends LightCodeInsightFixtureTestCase {
+class MB3Spec extends LightCodeInsightFixtureTestCase with Matchers {
 
-  //  val classText1 =
-  //    """
-  //      package edu.jetbrains.plugin.lt.finder.tree;
-  //      
-  //      
-  //      import java.util.ArrayList;
-  //      import java.util.ArrayList;
-  //      import java.util.ArrayList;
-  //      import java.util.ArrayList;
-  //      import java.util.ArrayList;
-  //      import java.util.ArrayList;
-  //      import java.util.ArrayList;
-  //      import java.util.List;
-  //      
-  //      class Test {
-  //      
-  //          public static void main(String[] args) {
-  //              List<Integer> ints = new ArrayList<>();
-  //              for (String arg : args) {
-  //                  ints.add(Integer.valueOf(arg));
-  //              }
-  //      
-  //              List<Double> doubles = new ArrayList<>();
-  //              for (String arg : args) {
-  //                  doubles.add(Double.valueOf(arg));
-  //              }
-  //      
-  //              List<Float> floats = new ArrayList<>();
-  //              for (String arg : args) {
-  //                  floats.add(Float.valueOf(arg));
-  //              }
-  //      
-  //              List<Short> shorts = new ArrayList<>();
-  //              for (String arg : args) {
-  //                  shorts.add(Short.valueOf(arg));
-  //              }
-  //          }
-  //      }
-  //       """
+  val classText1 =
+    """
+        package edu.jetbrains.plugin.lt.finder.tree;
+
+        class Test {
+
+            public static void main(String[] args) {
+                 String.format("some string", "val", 1, 2, 4, new Object());
+                 String.format("some string", 1, "val",  2, 4, new Object());
+                 String.format("some string", "val", 1, new Object());
+                 String.format("some string", "val", 1, 2, 4);
+                 String.format("some string",  1, 2, 4, new Object());
+                 String.format("some string", "val", 12, 4, new Object());
+                 String.format("some string", "val", 1, new Object());
+                 String.format("some string", "val", 1, 2, 4, new Object(), 5 ,6);
+            }
+        }
+         """
   val classText2 =
   """
      import javafx.scene.shape.Rectangle;
@@ -80,9 +60,14 @@ class MB3Spec extends LightCodeInsightFixtureTestCase {
     
     """
 
-  def testMB3(): Unit = {
-    val nodes = buildJavaPsiFiles(classText2).map(_.getNode)
+  def testMB3Parenthesis(): Unit = {
+    val nodes = buildJavaPsiFiles(classText1).map(_.getNode)
     new MB3().getTemplates(nodes, JavaFileTypeTemplateFilter)
+  }
+
+  def testMB3Imports(): Unit = {
+    val nodes = buildJavaPsiFiles(classText2).map(_.getNode)
+    new MB3().getTemplates(nodes, JavaFileTypeTemplateFilter) should have size 0
   }
 
   private def buildJavaPsiFiles(texts: String*): Seq[PsiFile] = {
