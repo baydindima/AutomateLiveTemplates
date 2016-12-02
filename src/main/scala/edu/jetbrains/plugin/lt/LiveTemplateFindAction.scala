@@ -8,8 +8,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.{PsiDirectory, PsiFile, PsiManager}
 import edu.jetbrains.plugin.lt.extensions.ep.FileTypeTemplateFilter
 import edu.jetbrains.plugin.lt.finder.common.TemplateWithFileType
-import edu.jetbrains.plugin.lt.finder.miner.{LeafNodeId, MB3}
-import edu.jetbrains.plugin.lt.finder.sstree.DefaultSearchConfiguration
+import edu.jetbrains.plugin.lt.finder.miner.{JavaFileTypeTemplateFilter, MB3}
 import edu.jetbrains.plugin.lt.newui.TemplatesDialog
 import edu.jetbrains.plugin.lt.ui.NoTemplatesDialog
 
@@ -19,7 +18,6 @@ import scala.collection.JavaConversions._
   * Created by Dmitriy Baidin.
   */
 class LiveTemplateFindAction extends AnAction {
-  val MemorySize = 10
 
   override def actionPerformed(anActionEvent: AnActionEvent): Unit = {
     val project = anActionEvent.getProject
@@ -46,68 +44,7 @@ class LiveTemplateFindAction extends AnAction {
 
         val start = System.currentTimeMillis()
 
-        val mb3 = new MB3
-
-        val nodeOccurrence = mb3.getNodeOccurrence(astNodes)
-
-        val nodeCount = nodeOccurrence.size
-
-
-        val nodeOccurrenceCount = nodeOccurrence.values.sum
-        val minSupport = (nodeOccurrenceCount / nodeCount) / 2
-
-        println(s"Node count: $nodeCount")
-        println(s"Node occurrence count: $nodeOccurrenceCount")
-        println(s"Min support: $minSupport")
-
-        val freqNodes = nodeOccurrence.filter(_._2 >= minSupport).keys.toSet
-        println(s"Freq node count: ${freqNodes.size}")
-        println(s"Freq node occurrence count: ${nodeOccurrence.filter { case (n, c) => freqNodes(n) }.values.sum}")
-
-        val leaves = freqNodes.filter {
-          case l: LeafNodeId => true
-          case _ => false
-        }
-
-        println(s"Leaves count: ${leaves.size}")
-        println(s"Leaves occurrence count: ${nodeOccurrence.filter { case (n, c) => leaves(n) }.values.sum}")
-
-        val dict = mb3.buildDictionary(astNodes, freqNodes)
-        println(s"Dictionary length ${dict.length}")
-
-        mb3.start(minSupport, dict)
-
-        mb3.treeMap.map(_.getTemplate).foreach {
-          str =>
-            println(str.text)
-            println(if (DefaultSearchConfiguration.isPossibleTemplate(str)) "valid" else 'invalid)
-            println("_______________________")
-        }
-
-
-        val templates = mb3.treeMap.map(_.getTemplate).filter(DefaultSearchConfiguration.isPossibleTemplate)
-        println(s"Tree count: ${mb3.treeMap.size}")
-
-        //        val edgeOccurrence = mb3.getEdgeOccurrence(astNodes, freqNodes)
-        //        val freqEdges = edgeOccurrence.filter(_._2 >= minSupport)
-        //        println(s"Edge count: ${edgeOccurrence.size}")
-        //        println(s"Edge occurrence count: ${edgeOccurrence.values.sum}")
-        //        println(s"Freq edge count: ${freqEdges.size}")
-        //        println(s"Freq edge count: ${freqEdges.values.sum}")
-
-        //        val tree = new SimTree
-        //        astNodes.foreach(node => {
-        //          tree.add(node)
-        //        })
-        //
-        //
-        //
-        //        val templateSearcher = new TemplateSearcher(tree,
-        //          DefaultSearchConfiguration,
-        //          filters.getOrElse(fileType, Seq.empty)
-        //        )
-        //
-        //        val templates = templateSearcher.searchTemplate
+        val templates = new MB3().getTemplates(astNodes, JavaFileTypeTemplateFilter)
 
         println(s"Time for templates extracting: ${System.currentTimeMillis() - start}")
         //        new TreeStatisticDialog(project, fileType, tree.calcTreeStatistic).show()
@@ -133,3 +70,47 @@ class LiveTemplateFindAction extends AnAction {
       .filter(_.getFileType != UnknownFileType.INSTANCE)
   }
 }
+
+
+/**
+  * Пока первое замечание - лучше переписать API FileTypeTemplateFilter:
+  * ввести вместо коллекций функции-чекеры в стиле boolean
+  * shouldOmitKeyword(String keyword), это даёт больше свободы в реализации.
+  */
+/**
+  * Для сравнения алгоритмов имеет смысл написать подгонку параметров каким-нибудь методом
+  * (хотя бы перебором с шагом для начала), чтобы можно было разделить множество
+  * тестов на 2 части, а затем обучить алгоритм (подобрать параметры) на одной,
+  * и проверить на другой. Я полагаю, правильно это называется кросс-валидацией.
+  */
+
+/**
+  * Поскольку у тебя уже есть 3 реализации задачи (алгоритм Егора, твой вариант
+  * и алгоритм из статьи) вохможно, имеет смысл в качестве результата практики
+  * представить сравнительный анализ алгоритмов. Это выглядит довольно содлидно
+  * и очень хорошо смотрися как глава диплома, если ты решишь в качестве диплома
+  * довести плагин.
+  */
+
+/**
+  * Неплохо было бы посмотреть на поиск дубликатов для Java, который уже есть
+  * в идее, я полагаю, он живёт в пакете com.intellij.dupLocator.
+  * Может, можно что-то оттуда стащить в смысле идей.
+  * Ну и, как минимум, на него всегда можно сослаться как на аналог
+  * (помимо тех статей о писке дублированного кода, которые мы уже рассматривали в начале семестра).
+  */
+
+/**
+  * Во-первых, намного лучше, поскольку мы работаем с узлами дерева, множество
+  * неинетесных узлов определять также на узлах. Тогда в реализации фильтра для
+  * языка можно смэтчить тип узла с известными нам типами узлов (IElementType)
+  * для package, import и т.д. Раз уж extension знает, с каким языком он работает,
+  * надо использовать это максимально.
+  */
+
+/**
+  * Во-вторых, возможно, следует следить, чтобы когда в плейсхолдер попадает обычно
+  * парный символ (например, различные типы скобок), и при этом где-то есть пара
+  * (например, в плейсхолдер попал '[', а где-то далее в тексте есть парная ему ']'),
+  * то либо брать оба символа в плейсхолдер, либо не брать ни один из них.
+  */

@@ -2,14 +2,58 @@ package edu.jetbrains.plugin.lt.finder.miner
 
 import com.intellij.lang.ASTNode
 import edu.jetbrains.plugin.lt.finder.common.{Template, TemplateStatistic}
+import edu.jetbrains.plugin.lt.finder.sstree.DefaultSearchConfiguration
 
 import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 
 class MB3 {
 
   var treeMap: List[TreeEncoding] = List.empty
+
+  def getTemplates(roots: Seq[ASTNode], fileTypeTemplateFilter: FileTypeTemplateFilter): List[Template] = {
+    val nodeOccurrence = getNodeOccurrence(roots)
+
+    val nodeCount = nodeOccurrence.size
+
+    val nodeOccurrenceCount = nodeOccurrence.values.sum
+    val minSupport = (nodeOccurrenceCount / nodeCount) / 2
+
+    println(s"Node count: $nodeCount")
+    println(s"Node occurrence count: $nodeOccurrenceCount")
+    println(s"Min support: $minSupport")
+
+    val freqNodes = nodeOccurrence.filter(_._2 >= minSupport).keys.toSet
+    println(s"Freq node count: ${freqNodes.size}")
+    println(s"Freq node occurrence count: ${nodeOccurrence.filter { case (n, _) => freqNodes(n) }.values.sum}")
+
+    val leaves = freqNodes.filter {
+      case _: LeafNodeId => true
+      case _ => false
+    }
+
+    println(s"Leaves count: ${leaves.size}")
+    println(s"Leaves occurrence count: ${nodeOccurrence.filter { case (n, _) => leaves(n) }.values.sum}")
+
+    val dict = buildDictionary(roots, freqNodes, fileTypeTemplateFilter)
+    println(s"Dictionary length ${dict.length}")
+
+    start(minSupport, dict)
+
+    treeMap.map(_.getTemplate).foreach {
+      str =>
+        println(str.text)
+        println(if (DefaultSearchConfiguration.isPossibleTemplate(str)) "valid" else 'invalid)
+        println("_______________________")
+    }
+
+
+    val templates = treeMap.map(_.getTemplate).filter(DefaultSearchConfiguration.isPossibleTemplate)
+    println(s"Tree count: ${treeMap.size}")
+    templates
+  }
+
 
   def getNodeOccurrence(roots: Seq[ASTNode]): mutable.Map[NodeId, Int] = {
     val nodeIdToCount: mutable.Map[NodeId, Int] = mutable.Map.empty
@@ -40,47 +84,7 @@ class MB3 {
     nodeIdToCount
   }
 
-  def getEdgeOccurrence(roots: Seq[ASTNode], freqNodes: Set[NodeId]): mutable.Map[(NodeId, NodeId), Int] = {
-    val edgeToCount: mutable.Map[(NodeId, NodeId), Int] = mutable.Map.empty
-
-    def addOccurrence(edge: (NodeId, NodeId)): Unit =
-      edgeToCount += (edge -> (edgeToCount.getOrElse(edge, 0) + 1))
-
-    def dfs(curNode: ASTNode): Option[NodeId] = {
-      def next(child: ASTNode, childrenNodeAcc: Seq[NodeId], childrenCountAcc: Int): (Seq[NodeId], Int) = child match {
-        case null => (childrenNodeAcc, childrenCountAcc)
-        case childNode =>
-          dfs(childNode) match {
-            case Some(node) => next(childNode.getTreeNext, node +: childrenNodeAcc, childrenCountAcc + 1)
-            case None => next(childNode.getTreeNext, childrenNodeAcc, childrenCountAcc + 1)
-          }
-      }
-
-      val (nodes, childrenCount) = next(
-        child = curNode.getFirstChildNode,
-        childrenNodeAcc = List.empty,
-        childrenCountAcc = 0
-      )
-
-      val nodeId = NodeId(curNode, childrenCount)
-
-      if (freqNodes(nodeId)) {
-
-        nodes
-          .foreach(n => addOccurrence(nodeId, n))
-
-        Some(nodeId)
-      } else {
-        None
-      }
-    }
-
-    roots.foreach(dfs)
-
-    edgeToCount
-  }
-
-  def buildDictionary(roots: Seq[ASTNode], freqNodes: Set[NodeId]): ArrayBuffer[DictionaryNode] = {
+  def buildDictionary(roots: Seq[ASTNode], freqNodes: Set[NodeId], filter: FileTypeTemplateFilter): ArrayBuffer[DictionaryNode] = {
     /**
       * Optimization to maintain only one instance of each node id
       */
@@ -95,10 +99,12 @@ class MB3 {
 
     def dfs(curNode: ASTNode, parentPos: Int, curDepth: Int): Unit = {
       val curPos = result.size
+
       def childCountNext(child: ASTNode, childrenCountAcc: Int): Int = child match {
         case null => childrenCountAcc
         case childNode => childCountNext(childNode.getTreeNext, childrenCountAcc + 1)
       }
+
       def dfsNext(child: ASTNode): Unit = child match {
         case null =>
         case childNode =>
@@ -109,11 +115,15 @@ class MB3 {
 
           dfsNext(childNode.getTreeNext)
       }
+
       val childCount = childCountNext(curNode.getFirstChildNode, 0)
 
       val nodeId = getNodeId(curNode, childCount)
 
-      val dictNode: DictionaryNode = if (freqNodes(nodeId)) {
+      val shouldAnalyze = filter.shouldAnalyze(nodeId)
+
+      val dictNode: DictionaryNode =
+        if (shouldAnalyze && freqNodes(nodeId)) {
         new Node(
           nodeId = nodeId,
           depth = curDepth,
@@ -125,8 +135,10 @@ class MB3 {
       }
 
       result += dictNode
+      if (shouldAnalyze) {
+        dfsNext(curNode.getFirstChildNode)
+      }
 
-      dfsNext(curNode.getFirstChildNode)
       dictNode.rightmostLeafPos = result.size - 1
     }
 
@@ -168,10 +180,136 @@ class MB3 {
 
     while (occurrenceMap.nonEmpty) {
       occurrenceMap = occurrenceMap.flatMap { case (enc, encList) =>
-        extend(enc, encList, minSupport, dictionary)
+        extend2(enc, encList, minSupport, dictionary)
       }
     }
 
+  }
+
+  def extend2(prefixEncoding: TreeEncoding,
+              occurrenceList: List[Occurrence],
+              minSupport: Int,
+              dictionary: ArrayBuffer[DictionaryNode]): mutable.Map[TreeEncoding, List[Occurrence]] = {
+    val completedBuckets: mutable.HashMap[TreeEncoding, List[Occurrence]] = mutable.HashMap.empty
+    var uncompletedBuckets: mutable.LinkedHashMap[TreeEncoding, ListBuffer[Occurrence]] = mutable.LinkedHashMap.empty
+
+    val unplacedRoots: mutable.HashSet[Int] = mutable.HashSet.empty
+    occurrenceList.foreach(o => unplacedRoots += o.rootPos)
+    val totalCount = unplacedRoots.size
+
+    val placedRoots: mutable.HashSet[Int] = mutable.HashSet.empty
+
+    val rightPosMap = mutable.Map.empty[Int, Int]
+    occurrenceList.foreach(o => rightPosMap += (o.rootPos -> o.rightLeafPos))
+
+    var first = true
+
+    def next(rootPos: Int): Unit = {
+      val rightmostLeaf = dictionary(rootPos).rightmostLeafPos
+      var found = false
+      var pos = rightPosMap(rootPos)
+      var maxDepth = dictionary(pos).depth + 1
+      while (!found && pos < rightmostLeaf) {
+        pos += 1
+        val dictNode = dictionary(pos)
+        val depth = dictNode.depth
+        if (depth <= maxDepth) {
+          maxDepth = depth
+          dictNode match {
+            case node: Node =>
+              found = true
+              val treeEncoding = TreeEncoding(EncodeNode(node.nodeId) :: (if (first && rightPosMap(rootPos) == pos - 1) List.empty else List(Placeholder)))
+              val newOccurrence = new Occurrence(rootPos, pos)
+
+              if (completedBuckets.contains(treeEncoding)) {
+                unplacedRoots -= rootPos
+                placedRoots += rootPos
+                completedBuckets += (treeEncoding -> (newOccurrence :: completedBuckets.getOrElse(treeEncoding, List.empty)))
+              } else {
+                rightPosMap += (newOccurrence.rootPos -> pos)
+                uncompletedBuckets.getOrElseUpdate(treeEncoding, {
+                  new ListBuffer[Occurrence]()
+                }) += newOccurrence
+              }
+            case _ =>
+          }
+        }
+      }
+      if (!found) {
+        unplacedRoots -= rootPos
+      }
+    }
+
+    while (unplacedRoots.size >= minSupport) {
+      unplacedRoots.foreach(next)
+      val newUncompletedBuckets: mutable.LinkedHashMap[TreeEncoding, ListBuffer[Occurrence]] = mutable.LinkedHashMap.empty
+      uncompletedBuckets.foreach { case (enc, occList) =>
+        if (occList.size >= minSupport) {
+          val filteredOccList = occList.filterNot(o => placedRoots.contains(o.rootPos))
+          if (filteredOccList.size >= minSupport) {
+            filteredOccList.foreach { o =>
+              placedRoots += o.rootPos
+              unplacedRoots -= o.rootPos
+            }
+            completedBuckets += (enc -> filteredOccList.toList)
+          } else {
+            newUncompletedBuckets += (enc -> filteredOccList)
+          }
+        } else {
+          newUncompletedBuckets += (enc -> occList)
+        }
+      }
+      first = false
+      uncompletedBuckets = newUncompletedBuckets
+    }
+
+    if (totalCount - placedRoots.size >= minSupport) {
+      treeMap ::= prefixEncoding
+    }
+
+    completedBuckets.map { case (enc, occList) =>
+      TreeEncoding(enc.encodeList ::: prefixEncoding.encodeList) -> occList
+    }
+  }
+
+  def getEdgeOccurrence(roots: Seq[ASTNode], freqNodes: Set[NodeId]): mutable.Map[(NodeId, NodeId), Int] = {
+    val edgeToCount: mutable.Map[(NodeId, NodeId), Int] = mutable.Map.empty
+
+    def addOccurrence(edge: (NodeId, NodeId)): Unit =
+      edgeToCount += (edge -> (edgeToCount.getOrElse(edge, 0) + 1))
+
+    def dfs(curNode: ASTNode): Option[NodeId] = {
+      def next(child: ASTNode, childrenNodeAcc: Seq[NodeId], childrenCountAcc: Int): (Seq[NodeId], Int) = child match {
+        case null => (childrenNodeAcc, childrenCountAcc)
+        case childNode =>
+          dfs(childNode) match {
+            case Some(node) => next(childNode.getTreeNext, node +: childrenNodeAcc, childrenCountAcc + 1)
+            case None => next(childNode.getTreeNext, childrenNodeAcc, childrenCountAcc + 1)
+          }
+      }
+
+      val (nodes, childrenCount) = next(
+        child = curNode.getFirstChildNode,
+        childrenNodeAcc = List.empty,
+        childrenCountAcc = 0
+      )
+
+      val nodeId = NodeId(curNode, childrenCount)
+
+      if (freqNodes(nodeId)) {
+
+        nodes
+          .foreach(n => addOccurrence(nodeId, n))
+
+        Some(nodeId)
+      } else {
+        None
+      }
+    }
+
+    roots.foreach(dfs)
+
+    edgeToCount
   }
 
   def extend(prefixEncoding: TreeEncoding,
@@ -293,7 +431,6 @@ case class TreeEncoding(encodeList: List[PathNode]) {
     case _ => ""
   }.mkString
 
-
   private def getCompressedEncodeList: List[PathNode] = {
     def helper(encodeList: List[PathNode], prevIsPlaceholder: Boolean, accList: List[PathNode]): List[PathNode] = encodeList match {
       case node :: tail =>
@@ -306,7 +443,7 @@ case class TreeEncoding(encodeList: List[PathNode]) {
                 helper(tail, prevIsPlaceholder, node :: accList)
             else
               helper(tail, prevIsPlaceholder = false, node :: accList)
-          case EncodeNode(inner: InnerNodeId) =>
+          case EncodeNode(_: InnerNodeId) =>
             helper(tail, prevIsPlaceholder, accList)
           case Placeholder =>
             if (prevIsPlaceholder)
@@ -316,8 +453,11 @@ case class TreeEncoding(encodeList: List[PathNode]) {
         }
       case Nil => accList
     }
+
     helper(encodeList, prevIsPlaceholder = false, List.empty)
   }
+
+  override def toString: String = getTemplate.text
 
   def getTemplate: Template = {
     var placeholderCount = 0

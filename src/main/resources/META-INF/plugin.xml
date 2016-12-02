@@ -39,14 +39,14 @@
     </project-components>
 
     <actions>
-        <action id="TemplatesFinder2.ID"
-                class="edu.jetbrains.plugin.lt.TemplatesFindAction"
-                text="Find Templates (Old)"
-                description="Find templates in project (Old)">
-            <add-to-group group-id="AnalyzeActions" anchor="last"/>
-            <keyboard-shortcut keymap="$default"
-                               first-keystroke="shift ctrl alt MULTIPLY 1"/>
-        </action>
+        <!--<action id="TemplatesFinder2.ID"-->
+        <!--class="edu.jetbrains.plugin.lt.TemplatesFindAction"-->
+        <!--text="Find Templates (Old)"-->
+        <!--description="Find templates in project (Old)">-->
+        <!--<add-to-group group-id="AnalyzeActions" anchor="last"/>-->
+        <!--<keyboard-shortcut keymap="$default"-->
+        <!--first-keystroke="shift ctrl alt MULTIPLY 1"/>-->
+        <!--</action>-->
 
         <action id="TemplatesFinder.ID"
                 class="edu.jetbrains.plugin.lt.LiveTemplateFindAction"
