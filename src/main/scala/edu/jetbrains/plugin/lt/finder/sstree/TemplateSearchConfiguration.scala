@@ -34,7 +34,7 @@ object DefaultSearchConfiguration extends TemplateSearchConfiguration {
     template.templateStatistic.placeholderCount <= PlaceholderMaximum &&
       (template.templateStatistic.placeholderCount /
         template.templateStatistic.nodeCount.toDouble) <= PlaceholderToNodeRatio &&
-      template.templateStatistic.nodeCount >= NodesMinimum &&
+      //      template.templateStatistic.nodeCount >= NodesMinimum &&
       template.text.length >= LengthMinimum
 
 

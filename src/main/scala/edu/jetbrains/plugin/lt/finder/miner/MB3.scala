@@ -10,8 +10,6 @@ import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 class MB3 {
 
-  var treeMap: List[TreeEncoding] = List.empty
-
   def getTemplates(roots: Seq[ASTNode],
                    fileTypeTemplateFilter: FileTypeTemplateFilter,
                    templateProcessor: TemplateProcessor): List[Template] = {
@@ -20,7 +18,7 @@ class MB3 {
     val nodeCount = nodeOccurrence.size
 
     val nodeOccurrenceCount = nodeOccurrence.values.sum
-    val minSupport = nodeOccurrenceCount / nodeCount
+    val minSupport = (nodeOccurrenceCount / nodeCount) / 2
 
     println(s"Node count: $nodeCount")
     println(s"Node occurrence count: $nodeOccurrenceCount")
@@ -41,9 +39,9 @@ class MB3 {
     val dict = buildDictionary(roots, freqNodes, fileTypeTemplateFilter)
     println(s"Dictionary length ${dict.length}")
 
-    start(minSupport, dict)
+    val treeList = start(minSupport, dict)
 
-    treeMap.map(templateProcessor.process).foreach {
+    treeList.map(templateProcessor.process).foreach {
       str =>
         println(str.text)
         println(if (DefaultSearchConfiguration.isPossibleTemplate(str)) "valid" else 'invalid)
@@ -51,8 +49,10 @@ class MB3 {
     }
 
 
-    val templates = treeMap.map(templateProcessor.process).filter(DefaultSearchConfiguration.isPossibleTemplate)
-    println(s"Tree count: ${treeMap.size}")
+    val templates = treeList.map(templateProcessor.process)
+      .filter(DefaultSearchConfiguration.isPossibleTemplate)
+      .groupBy(_.text).mapValues(_.head).values.toList.sortBy(-_.text.length)
+    println(s"Tree count: ${treeList.size}")
     templates
   }
 
@@ -163,8 +163,8 @@ class MB3 {
   }
 
   def start(minSupport: Int,
-            dictionary: ArrayBuffer[DictionaryNode]): Unit = {
-    var occurrenceMap = mutable.Map.empty[TreeEncoding, ListBuffer[Occurrence]]
+            dictionary: ArrayBuffer[DictionaryNode]): List[TreeEncoding] = {
+    val occurrenceMap = mutable.Map.empty[TreeEncoding, ListBuffer[Occurrence]]
 
     for (
       i <- dictionary.indices
@@ -180,18 +180,21 @@ class MB3 {
       }
     }
 
-    while (occurrenceMap.nonEmpty) {
-      occurrenceMap = occurrenceMap.flatMap { case (enc, encList) =>
-        extend2(enc, encList, minSupport, dictionary)
-      }
+    def extendMap(occMap: mutable.Map[TreeEncoding, ListBuffer[Occurrence]]): List[TreeEncoding] = {
+      occMap.par.flatMap { case (enc, encList) =>
+        val (newCandidates, isTemplate) = extend(enc, encList, minSupport, dictionary)
+        val result = extendMap(newCandidates)
+        if (isTemplate) enc :: result else result
+      }.toList
     }
 
+    extendMap(occurrenceMap)
   }
 
-  def extend2(prefixEncoding: TreeEncoding,
-              occurrenceList: ListBuffer[Occurrence],
-              minSupport: Int,
-              dictionary: ArrayBuffer[DictionaryNode]): mutable.Map[TreeEncoding, ListBuffer[Occurrence]] = {
+  def extend(prefixEncoding: TreeEncoding,
+             occurrenceList: ListBuffer[Occurrence],
+             minSupport: Int,
+             dictionary: ArrayBuffer[DictionaryNode]): (mutable.Map[TreeEncoding, ListBuffer[Occurrence]], Boolean) = {
     val completedBuckets: mutable.HashMap[TreeEncoding, ListBuffer[Occurrence]] = mutable.HashMap.empty
     var uncompletedBuckets: mutable.LinkedHashMap[TreeEncoding, ListBuffer[Occurrence]] = mutable.LinkedHashMap.empty
 
@@ -265,13 +268,10 @@ class MB3 {
       uncompletedBuckets = newUncompletedBuckets
     }
 
-    if (totalCount - placedRoots.size >= minSupport) {
-      treeMap ::= prefixEncoding
-    }
 
-    completedBuckets.map { case (enc, occList) =>
+    (completedBuckets.map { case (enc, occList) =>
       TreeEncoding(enc.encodeList ::: prefixEncoding.encodeList) -> occList
-    }
+    }, totalCount - placedRoots.size >= minSupport)
   }
 
   def getEdgeOccurrence(roots: Seq[ASTNode], freqNodes: Set[NodeId]): mutable.Map[(NodeId, NodeId), Int] = {
@@ -312,93 +312,6 @@ class MB3 {
     roots.foreach(dfs)
 
     edgeToCount
-  }
-
-  def extend(prefixEncoding: TreeEncoding,
-             occurrenceList: List[Occurrence],
-             minSupport: Int,
-             dictionary: ArrayBuffer[DictionaryNode]): mutable.Map[TreeEncoding, List[Occurrence]] = {
-    /** result of extend */
-    var result = mutable.Map.empty[TreeEncoding, List[Occurrence]]
-
-    /** store right position for occurrence */
-    val rightPosMap = mutable.Map.empty[Int, Int]
-    occurrenceList.foreach { occurrence => rightPosMap += (occurrence.rootPos -> occurrence.rightLeafPos) }
-
-    /** store buf result */
-    var occurrenceMap = mutable.LinkedHashMap.empty[TreeEncoding, List[Occurrence]]
-
-    /** Count of occurrence */
-    val occurrenceCount = occurrenceList.length
-
-    /** Active occurrence */
-    var occurrences: Set[Occurrence] = occurrenceList.toSet
-    /** is first iteration */
-    var first = true
-
-    val usedRoots = new mutable.HashSet[Int]()
-
-    while (occurrences.size >= minSupport) {
-      var newOccurrenceSet: Set[Occurrence] = Set.empty
-
-      occurrences.foreach { occurrence =>
-        val rightmostLeaf = dictionary(occurrence.rootPos).rightmostLeafPos
-        var found = false
-        var pos = rightPosMap(occurrence.rootPos)
-        var maxDepth = dictionary(pos).depth + 1
-        while (!found && pos < rightmostLeaf) {
-          pos += 1
-          val dictNode = dictionary(pos)
-          val depth = dictNode.depth
-          if (depth <= maxDepth) {
-            maxDepth = depth
-            dictNode match {
-              case node: Node =>
-                found = true
-                val newOccurrence = new Occurrence(occurrence.rootPos, pos)
-
-                val treeEncoding = TreeEncoding(EncodeNode(node.nodeId) :: (if (first && rightPosMap(newOccurrence.rootPos) == pos - 1) List.empty else List(Placeholder)))
-                rightPosMap += (newOccurrence.rootPos -> pos)
-                occurrenceMap += (treeEncoding -> (newOccurrence :: occurrenceMap.getOrElse(treeEncoding, List.empty)))
-              case _ =>
-            }
-          }
-        }
-        if (found) {
-          newOccurrenceSet += occurrence
-        }
-      }
-
-      occurrenceMap = occurrenceMap.flatMap { case (enc, encList) =>
-        val list = encList.filterNot(n => usedRoots.contains(n.rootPos))
-        val size = list.size
-        if (size >= minSupport) {
-          usedRoots ++= list.map(_.rootPos)
-          result += (enc -> (list ::: result.getOrElse(enc, List.empty)))
-          list.foreach(newOccurrenceSet -= _)
-          List.empty
-        } else {
-          List(enc -> list)
-        }
-      }
-
-      occurrences = newOccurrenceSet
-      first = false
-    }
-
-    result = result.map { case (enc, encList) =>
-      enc -> (encList ::: occurrenceMap.getOrElse(enc, List.empty))
-    }
-
-    val notExtendedCount = occurrenceCount - result.values.map(_.size).sum
-
-    if (notExtendedCount >= minSupport) {
-      treeMap ::= prefixEncoding
-    }
-
-    result.map { case (enc, encList) =>
-      TreeEncoding(enc.encodeList ::: prefixEncoding.encodeList) -> encList
-    }
   }
 }
 
