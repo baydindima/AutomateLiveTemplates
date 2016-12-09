@@ -8,7 +8,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.{PsiDirectory, PsiFile, PsiManager}
 import edu.jetbrains.plugin.lt.extensions.ep.FileTypeTemplateFilter
 import edu.jetbrains.plugin.lt.finder.common.TemplateWithFileType
-import edu.jetbrains.plugin.lt.finder.miner.{JavaFileTypeTemplateFilter, MB3}
+import edu.jetbrains.plugin.lt.finder.miner.{JavaFileTypeTemplateFilter, JavaTemplateProcessor, MB3}
 import edu.jetbrains.plugin.lt.newui.TemplatesDialog
 import edu.jetbrains.plugin.lt.ui.NoTemplatesDialog
 
@@ -44,7 +44,7 @@ class LiveTemplateFindAction extends AnAction {
 
         val start = System.currentTimeMillis()
 
-        val templates = new MB3().getTemplates(astNodes, JavaFileTypeTemplateFilter)
+        val templates = new MB3().getTemplates(astNodes, JavaFileTypeTemplateFilter, JavaTemplateProcessor)
 
         println(s"Time for templates extracting: ${System.currentTimeMillis() - start}")
         //        new TreeStatisticDialog(project, fileType, tree.calcTreeStatistic).show()

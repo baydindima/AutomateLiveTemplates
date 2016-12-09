@@ -62,11 +62,7 @@ public class TreeTemplatesFinder {
         final double[] i = {0};
         Map<FileType, List<PsiFile>> psiFilesMap = new HashMap<>();
         psiFiles.forEach(psiFile -> {
-            List<PsiFile> typedPsiFiles = psiFilesMap.get(psiFile.getFileType());
-            if (typedPsiFiles == null) {
-                typedPsiFiles = new LinkedList<>();
-                psiFilesMap.put(psiFile.getFileType(), typedPsiFiles);
-            }
+            List<PsiFile> typedPsiFiles = psiFilesMap.computeIfAbsent(psiFile.getFileType(), k -> new LinkedList<>());
             typedPsiFiles.add(psiFile);
             if (++i[0] % 10 == 0) {
                 System.out.println(i[0] / psiFiles.size());
@@ -112,11 +108,7 @@ public class TreeTemplatesFinder {
                     }
                 } else if (possibleTemplatePredicate.test(node) &&
                         !fileTypeNotAnalyzePredicate.test(node.getText())) {
-                    List<ASTNode> typedAstNodes = astNodesMap.get(node.getElementType());
-                    if (typedAstNodes == null) {
-                        typedAstNodes = new LinkedList<>();
-                        astNodesMap.put(node.getElementType(), typedAstNodes);
-                    }
+                    List<ASTNode> typedAstNodes = astNodesMap.computeIfAbsent(node.getElementType(), k -> new LinkedList<>());
                     typedAstNodes.add(node);
                     for (ASTNode child :
                             node.getChildren(null)) {
@@ -126,7 +118,7 @@ public class TreeTemplatesFinder {
             };
 
             // Вызываем recursiveAstNodeConsumer для каждого файла, кроме файлов содержащих фразу "GUI Designer"?
-            typedPsiFiles.stream().forEach(psiFile -> {
+            typedPsiFiles.forEach(psiFile -> {
                 if (!psiFile.getText().contains("GUI Designer")) {
                     for (PsiElement element :
                             psiFile.getChildren()) {
@@ -163,7 +155,7 @@ public class TreeTemplatesFinder {
 
         // Сортируем templateList по количеству повторений
         List<Template> templateList = new ArrayList<>(templateSet);
-        Collections.sort(templateList, (o1, o2) -> Integer.compare(o2.getOccurrences(), o1.getOccurrences()));
+        templateList.sort((o1, o2) -> Integer.compare(o2.getOccurrences(), o1.getOccurrences()));
 
         // Удаляем из списка все template, которые являются подпоследовательностями других template
         Set<Integer> toDeleteSet = new TreeSet<>(Comparator.reverseOrder());

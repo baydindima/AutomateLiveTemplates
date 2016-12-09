@@ -8,8 +8,8 @@ import com.intellij.openapi.fileTypes.FileType
 class TemplateWithFileType(val template: Template,
                            val fileType: FileType)
 
-class Template(val text: String,
-               val templateStatistic: TemplateStatistic)
+case class Template(text: String,
+                    templateStatistic: TemplateStatistic)
 
 object Template {
   def apply(templates: Seq[Template]): Template =

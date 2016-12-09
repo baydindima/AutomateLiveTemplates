@@ -1,7 +1,7 @@
 package edu.jetbrains.plugin.lt.finder.miner
 
 import com.intellij.lang.ASTNode
-import edu.jetbrains.plugin.lt.finder.common.{Template, TemplateStatistic}
+import edu.jetbrains.plugin.lt.finder.common.Template
 import edu.jetbrains.plugin.lt.finder.sstree.DefaultSearchConfiguration
 
 import scala.collection.mutable
@@ -12,13 +12,15 @@ class MB3 {
 
   var treeMap: List[TreeEncoding] = List.empty
 
-  def getTemplates(roots: Seq[ASTNode], fileTypeTemplateFilter: FileTypeTemplateFilter): List[Template] = {
+  def getTemplates(roots: Seq[ASTNode],
+                   fileTypeTemplateFilter: FileTypeTemplateFilter,
+                   templateProcessor: TemplateProcessor): List[Template] = {
     val nodeOccurrence = getNodeOccurrence(roots)
 
     val nodeCount = nodeOccurrence.size
 
     val nodeOccurrenceCount = nodeOccurrence.values.sum
-    val minSupport = (nodeOccurrenceCount / nodeCount) / 2
+    val minSupport = nodeOccurrenceCount / nodeCount
 
     println(s"Node count: $nodeCount")
     println(s"Node occurrence count: $nodeOccurrenceCount")
@@ -41,7 +43,7 @@ class MB3 {
 
     start(minSupport, dict)
 
-    treeMap.map(_.getTemplate).foreach {
+    treeMap.map(templateProcessor.process).foreach {
       str =>
         println(str.text)
         println(if (DefaultSearchConfiguration.isPossibleTemplate(str)) "valid" else 'invalid)
@@ -49,7 +51,7 @@ class MB3 {
     }
 
 
-    val templates = treeMap.map(_.getTemplate).filter(DefaultSearchConfiguration.isPossibleTemplate)
+    val templates = treeMap.map(templateProcessor.process).filter(DefaultSearchConfiguration.isPossibleTemplate)
     println(s"Tree count: ${treeMap.size}")
     templates
   }
@@ -162,7 +164,7 @@ class MB3 {
 
   def start(minSupport: Int,
             dictionary: ArrayBuffer[DictionaryNode]): Unit = {
-    var occurrenceMap = mutable.Map.empty[TreeEncoding, List[Occurrence]]
+    var occurrenceMap = mutable.Map.empty[TreeEncoding, ListBuffer[Occurrence]]
 
     for (
       i <- dictionary.indices
@@ -171,7 +173,7 @@ class MB3 {
         case node: Node => node.nodeId match {
           case inner: InnerNodeId =>
             val encode = TreeEncoding(List(EncodeNode(inner)))
-            occurrenceMap += (encode -> (new Occurrence(i, i) :: occurrenceMap.getOrElse(encode, List.empty)))
+            new Occurrence(i, i) +=: occurrenceMap.getOrElseUpdate(encode, new ListBuffer[Occurrence]())
           case _ =>
         }
         case _ =>
@@ -187,10 +189,10 @@ class MB3 {
   }
 
   def extend2(prefixEncoding: TreeEncoding,
-              occurrenceList: List[Occurrence],
+              occurrenceList: ListBuffer[Occurrence],
               minSupport: Int,
-              dictionary: ArrayBuffer[DictionaryNode]): mutable.Map[TreeEncoding, List[Occurrence]] = {
-    val completedBuckets: mutable.HashMap[TreeEncoding, List[Occurrence]] = mutable.HashMap.empty
+              dictionary: ArrayBuffer[DictionaryNode]): mutable.Map[TreeEncoding, ListBuffer[Occurrence]] = {
+    val completedBuckets: mutable.HashMap[TreeEncoding, ListBuffer[Occurrence]] = mutable.HashMap.empty
     var uncompletedBuckets: mutable.LinkedHashMap[TreeEncoding, ListBuffer[Occurrence]] = mutable.LinkedHashMap.empty
 
     val unplacedRoots: mutable.HashSet[Int] = mutable.HashSet.empty
@@ -224,7 +226,7 @@ class MB3 {
               if (completedBuckets.contains(treeEncoding)) {
                 unplacedRoots -= rootPos
                 placedRoots += rootPos
-                completedBuckets += (treeEncoding -> (newOccurrence :: completedBuckets.getOrElse(treeEncoding, List.empty)))
+                newOccurrence +=: completedBuckets(treeEncoding)
               } else {
                 rightPosMap += (newOccurrence.rootPos -> pos)
                 uncompletedBuckets.getOrElseUpdate(treeEncoding, {
@@ -251,7 +253,7 @@ class MB3 {
               placedRoots += o.rootPos
               unplacedRoots -= o.rootPos
             }
-            completedBuckets += (enc -> filteredOccList.toList)
+            completedBuckets += (enc -> filteredOccList)
           } else {
             newUncompletedBuckets += (enc -> filteredOccList)
           }
@@ -425,65 +427,8 @@ class DictionaryPlaceholder(override val depth: Int,
 }
 
 case class TreeEncoding(encodeList: List[PathNode]) {
-  def getText: String = getCompressedEncodeList.map {
-    case EncodeNode(leaf: LeafNodeId) => leaf.nodeText
-    case Placeholder => " #_# "
-    case _ => ""
-  }.mkString
 
-  private def getCompressedEncodeList: List[PathNode] = {
-    def helper(encodeList: List[PathNode], prevIsPlaceholder: Boolean, accList: List[PathNode]): List[PathNode] = encodeList match {
-      case node :: tail =>
-        node match {
-          case EncodeNode(leaf: LeafNodeId) =>
-            if (leaf.nodeText.matches("(\\s|\\n)*"))
-              if (prevIsPlaceholder)
-                helper(tail, prevIsPlaceholder, accList)
-              else
-                helper(tail, prevIsPlaceholder, node :: accList)
-            else
-              helper(tail, prevIsPlaceholder = false, node :: accList)
-          case EncodeNode(_: InnerNodeId) =>
-            helper(tail, prevIsPlaceholder, accList)
-          case Placeholder =>
-            if (prevIsPlaceholder)
-              helper(tail, prevIsPlaceholder = true, accList)
-            else
-              helper(tail, prevIsPlaceholder = true, node :: accList)
-        }
-      case Nil => accList
-    }
-
-    helper(encodeList, prevIsPlaceholder = false, List.empty)
-  }
-
-  override def toString: String = getTemplate.text
-
-  def getTemplate: Template = {
-    var placeholderCount = 0
-    var parenthesisCount = 0
-    var nodeCount = 0
-    val text = getCompressedEncodeList.map {
-      case EncodeNode(leaf: LeafNodeId) =>
-        nodeCount += 1
-        if (leaf.nodeText == "(") {
-          parenthesisCount += 1
-        } else if (leaf.nodeText == ")") {
-          parenthesisCount -= 1
-        }
-        leaf.nodeText
-      case Placeholder =>
-        placeholderCount += 1
-        " #_# "
-      case _ => ""
-    }.mkString
-    if (parenthesisCount >= 1) {
-      new Template(text + " #_# " + (")" * parenthesisCount), new TemplateStatistic(placeholderCount, nodeCount))
-    } else {
-      new Template(text, new TemplateStatistic(placeholderCount, nodeCount))
-    }
-
-  }
+  override def toString: String = DefaultTemplateProcessor.getTemplate(encodeList).text
 
 }
 
