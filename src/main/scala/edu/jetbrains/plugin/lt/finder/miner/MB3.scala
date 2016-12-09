@@ -13,33 +13,10 @@ class MB3 {
   def getTemplates(roots: Seq[ASTNode],
                    fileTypeTemplateFilter: FileTypeTemplateFilter,
                    templateProcessor: TemplateProcessor): List[Template] = {
-    val nodeOccurrence = getNodeOccurrence(roots)
-
-    val nodeCount = nodeOccurrence.size
-
-    val nodeOccurrenceCount = nodeOccurrence.values.sum
-    val minSupport = (nodeOccurrenceCount / nodeCount) / 2
-
-    println(s"Node count: $nodeCount")
-    println(s"Node occurrence count: $nodeOccurrenceCount")
-    println(s"Min support: $minSupport")
-
-    val freqNodes = nodeOccurrence.filter(_._2 >= minSupport).keys.toSet
-    println(s"Freq node count: ${freqNodes.size}")
-    println(s"Freq node occurrence count: ${nodeOccurrence.filter { case (n, _) => freqNodes(n) }.values.sum}")
-
-    val leaves = freqNodes.filter {
-      case _: LeafNodeId => true
-      case _ => false
-    }
-
-    println(s"Leaves count: ${leaves.size}")
-    println(s"Leaves occurrence count: ${nodeOccurrence.filter { case (n, _) => leaves(n) }.values.sum}")
-
-    val dict = buildDictionary(roots, freqNodes, fileTypeTemplateFilter)
+    val (dict, minSupport) = buildDictionary(roots, fileTypeTemplateFilter)
     println(s"Dictionary length ${dict.length}")
 
-    val treeList = start(minSupport, dict)
+    val treeList = getCandidates(minSupport, dict)
 
     treeList.map(templateProcessor.process).foreach {
       str =>
@@ -56,37 +33,12 @@ class MB3 {
     templates
   }
 
-
-  def getNodeOccurrence(roots: Seq[ASTNode]): mutable.Map[NodeId, Int] = {
+  private def buildDictionary(roots: Seq[ASTNode], filter: FileTypeTemplateFilter): (ArrayBuffer[DictionaryNode], Int) = {
     val nodeIdToCount: mutable.Map[NodeId, Int] = mutable.Map.empty
 
     def addOccurrence(nodeId: NodeId): Unit =
       nodeIdToCount += (nodeId -> (nodeIdToCount.getOrElse(nodeId, 0) + 1))
 
-    def dfs(curNode: ASTNode): Unit = {
-      def next(child: ASTNode, childrenCountAcc: Int): Int = child match {
-        case null => childrenCountAcc
-        case childNode =>
-          dfs(childNode)
-          next(childNode.getTreeNext, childrenCountAcc + 1)
-      }
-
-      val childrenCount = next(
-        child = curNode.getFirstChildNode,
-        childrenCountAcc = 0
-      )
-
-      val nodeId = NodeId(curNode, childrenCount)
-
-      addOccurrence(nodeId)
-    }
-
-    roots.foreach(dfs)
-
-    nodeIdToCount
-  }
-
-  def buildDictionary(roots: Seq[ASTNode], freqNodes: Set[NodeId], filter: FileTypeTemplateFilter): ArrayBuffer[DictionaryNode] = {
     /**
       * Optimization to maintain only one instance of each node id
       */
@@ -122,10 +74,12 @@ class MB3 {
 
       val nodeId = getNodeId(curNode, childCount)
 
+      addOccurrence(nodeId)
+
       val shouldAnalyze = filter.shouldAnalyze(nodeId)
 
       val dictNode: DictionaryNode =
-        if (shouldAnalyze && freqNodes(nodeId)) {
+        if (shouldAnalyze) {
           new Node(
             nodeId = nodeId,
             depth = curDepth,
@@ -144,26 +98,37 @@ class MB3 {
       dictNode.rightmostLeafPos = result.size - 1
     }
 
-    var i = 0
-    var start = System.currentTimeMillis()
-
     roots.foreach { root =>
-      i += 1
-      if (i % 1000 == 0) {
-        println(s"Cur count $i")
-        println(s"Time is ${System.currentTimeMillis() - start}")
-        println(s"Free memory ${Runtime.getRuntime.freeMemory()}")
-        start = System.currentTimeMillis()
-      }
-
       dfs(root, -1, 0)
     }
 
-    result
+    def getFreqNodes(nodeIdToCount: mutable.Map[NodeId, Int]): (Set[NodeId], Int) = {
+      val nodeCount = nodeIdToCount.size
+
+      val nodeOccurrenceCount = nodeIdToCount.values.sum
+      val minSupport = (nodeOccurrenceCount / nodeCount) / 2
+      println(s"Node count: $nodeCount")
+      println(s"Node occurrence count: $nodeOccurrenceCount")
+      println(s"Min support: $minSupport")
+
+      (nodeIdToCount.filter(_._2 >= minSupport).keys.toSet, minSupport)
+    }
+
+    val (freqNodes, minSupport) = getFreqNodes(nodeIdToCount)
+
+    result.transform {
+      case node: Node =>
+        if (freqNodes(node.nodeId)) node else new DictionaryPlaceholder(
+          depth = node.depth,
+          parentPos = node.parentPos)
+      case d => d
+    }
+
+    (result, minSupport)
   }
 
-  def start(minSupport: Int,
-            dictionary: ArrayBuffer[DictionaryNode]): List[TreeEncoding] = {
+  private def getCandidates(minSupport: Int,
+                            dictionary: ArrayBuffer[DictionaryNode]): List[TreeEncoding] = {
     val occurrenceMap = mutable.Map.empty[TreeEncoding, ListBuffer[Occurrence]]
 
     for (
@@ -191,10 +156,10 @@ class MB3 {
     extendMap(occurrenceMap)
   }
 
-  def extend(prefixEncoding: TreeEncoding,
-             occurrenceList: ListBuffer[Occurrence],
-             minSupport: Int,
-             dictionary: ArrayBuffer[DictionaryNode]): (mutable.Map[TreeEncoding, ListBuffer[Occurrence]], Boolean) = {
+  private def extend(prefixEncoding: TreeEncoding,
+                     occurrenceList: ListBuffer[Occurrence],
+                     minSupport: Int,
+                     dictionary: ArrayBuffer[DictionaryNode]): (mutable.Map[TreeEncoding, ListBuffer[Occurrence]], Boolean) = {
     val completedBuckets: mutable.HashMap[TreeEncoding, ListBuffer[Occurrence]] = mutable.HashMap.empty
     var uncompletedBuckets: mutable.LinkedHashMap[TreeEncoding, ListBuffer[Occurrence]] = mutable.LinkedHashMap.empty
 
@@ -272,46 +237,6 @@ class MB3 {
     (completedBuckets.map { case (enc, occList) =>
       TreeEncoding(enc.encodeList ::: prefixEncoding.encodeList) -> occList
     }, totalCount - placedRoots.size >= minSupport)
-  }
-
-  def getEdgeOccurrence(roots: Seq[ASTNode], freqNodes: Set[NodeId]): mutable.Map[(NodeId, NodeId), Int] = {
-    val edgeToCount: mutable.Map[(NodeId, NodeId), Int] = mutable.Map.empty
-
-    def addOccurrence(edge: (NodeId, NodeId)): Unit =
-      edgeToCount += (edge -> (edgeToCount.getOrElse(edge, 0) + 1))
-
-    def dfs(curNode: ASTNode): Option[NodeId] = {
-      def next(child: ASTNode, childrenNodeAcc: Seq[NodeId], childrenCountAcc: Int): (Seq[NodeId], Int) = child match {
-        case null => (childrenNodeAcc, childrenCountAcc)
-        case childNode =>
-          dfs(childNode) match {
-            case Some(node) => next(childNode.getTreeNext, node +: childrenNodeAcc, childrenCountAcc + 1)
-            case None => next(childNode.getTreeNext, childrenNodeAcc, childrenCountAcc + 1)
-          }
-      }
-
-      val (nodes, childrenCount) = next(
-        child = curNode.getFirstChildNode,
-        childrenNodeAcc = List.empty,
-        childrenCountAcc = 0
-      )
-
-      val nodeId = NodeId(curNode, childrenCount)
-
-      if (freqNodes(nodeId)) {
-
-        nodes
-          .foreach(n => addOccurrence(nodeId, n))
-
-        Some(nodeId)
-      } else {
-        None
-      }
-    }
-
-    roots.foreach(dfs)
-
-    edgeToCount
   }
 }
 
