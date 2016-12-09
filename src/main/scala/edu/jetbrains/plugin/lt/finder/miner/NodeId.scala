@@ -17,7 +17,7 @@ object NodeId {
       LeafNodeId(
         astNode.getElementType,
         astNode.getText.replaceAll(" +", " "))
-    case n =>
+    case _ =>
       InnerNodeId(
         astNode.getElementType
       )

@@ -62,12 +62,16 @@ class MB3Spec extends LightCodeInsightFixtureTestCase with Matchers {
 
   def testMB3Parenthesis(): Unit = {
     val nodes = buildJavaPsiFiles(classText1).map(_.getNode)
-    new MB3().getTemplates(nodes, JavaFileTypeTemplateFilter)
+    new MB3(new MinerConfiguration(minSupportCoefficient = 0.5),
+      JavaFileTypeTemplateFilter,
+      JavaTemplateProcessor).getTemplates(nodes)
   }
 
   def testMB3Imports(): Unit = {
     val nodes = buildJavaPsiFiles(classText2).map(_.getNode)
-    new MB3().getTemplates(nodes, JavaFileTypeTemplateFilter) should have size 0
+    new MB3(new MinerConfiguration(minSupportCoefficient = 0.5),
+      JavaFileTypeTemplateFilter,
+      JavaTemplateProcessor).getTemplates(nodes) should have size 0
   }
 
   private def buildJavaPsiFiles(texts: String*): Seq[PsiFile] = {

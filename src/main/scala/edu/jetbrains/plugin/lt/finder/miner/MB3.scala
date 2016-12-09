@@ -8,15 +8,29 @@ import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 
-class MB3 {
+/**
+  * Class implements MB3 algorithm.
+  * It returns frequent induced trees in forest.
+  *
+  * @param minerConfiguration parameters of MB3 algorithm
+  * @param templateFilter     filter of nodes
+  * @param templateProcessor  processor of templates
+  */
+class MB3(val minerConfiguration: MinerConfiguration,
+          val templateFilter: FileTypeTemplateFilter,
+          val templateProcessor: TemplateProcessor) {
 
-  def getTemplates(roots: Seq[ASTNode],
-                   fileTypeTemplateFilter: FileTypeTemplateFilter,
-                   templateProcessor: TemplateProcessor): List[Template] = {
-    val (dict, minSupport) = buildDictionary(roots, fileTypeTemplateFilter)
+  /**
+    * Get templates of forest.
+    *
+    * @param roots root nodes of files
+    * @return templates
+    */
+  def getTemplates(roots: Seq[ASTNode]): List[Template] = {
+    val (dict, minSupport) = buildDictionary(roots)
     println(s"Dictionary length ${dict.length}")
 
-    val treeList = getCandidates(minSupport, dict)
+    val treeList = getEncodingCandidates(minSupport, dict)
 
     treeList.map(templateProcessor.process).foreach {
       str =>
@@ -33,9 +47,21 @@ class MB3 {
     templates
   }
 
-  private def buildDictionary(roots: Seq[ASTNode], filter: FileTypeTemplateFilter): (ArrayBuffer[DictionaryNode], Int) = {
+  /**
+    * Builds dictionary from nodes.
+    * Dictionary is array of all nodes in pre order traversal.
+    *
+    * @param roots root nodes of files
+    * @return dictionary and min support count
+    */
+  private def buildDictionary(roots: Seq[ASTNode]): (ArrayBuffer[DictionaryNode], Int) = {
     val nodeIdToCount: mutable.Map[NodeId, Int] = mutable.Map.empty
 
+    /**
+      * Add occurrence count for node id
+      *
+      * @param nodeId node id
+      */
     def addOccurrence(nodeId: NodeId): Unit =
       nodeIdToCount += (nodeId -> (nodeIdToCount.getOrElse(nodeId, 0) + 1))
 
@@ -46,11 +72,25 @@ class MB3 {
 
     val result: ArrayBuffer[DictionaryNode] = new ArrayBuffer[DictionaryNode]()
 
+    /**
+      * Get node id by ast node and children count.
+      *
+      * @param astNode       ast node
+      * @param childrenCount children count
+      * @return node id
+      */
     def getNodeId(astNode: ASTNode, childrenCount: Int): NodeId = {
       val nodeId = NodeId(astNode, childrenCount)
       nodeIdMap.getOrElseUpdate(nodeId, nodeId)
     }
 
+    /**
+      * DFS traversal by ast tree.
+      *
+      * @param curNode   current ast node
+      * @param parentPos position of parent node in dictionary
+      * @param curDepth  current depth in ast tree
+      */
     def dfs(curNode: ASTNode, parentPos: Int, curDepth: Int): Unit = {
       val curPos = result.size
 
@@ -76,7 +116,7 @@ class MB3 {
 
       addOccurrence(nodeId)
 
-      val shouldAnalyze = filter.shouldAnalyze(nodeId)
+      val shouldAnalyze = templateFilter.shouldAnalyze(nodeId)
 
       val dictNode: DictionaryNode =
         if (shouldAnalyze) {
@@ -102,11 +142,17 @@ class MB3 {
       dfs(root, -1, 0)
     }
 
+    /**
+      * Get frequent nodes.
+      *
+      * @param nodeIdToCount map node id to occurrence count
+      * @return set of frequent nodes and min support
+      */
     def getFreqNodes(nodeIdToCount: mutable.Map[NodeId, Int]): (Set[NodeId], Int) = {
       val nodeCount = nodeIdToCount.size
 
       val nodeOccurrenceCount = nodeIdToCount.values.sum
-      val minSupport = (nodeOccurrenceCount / nodeCount) / 2
+      val minSupport = ((nodeOccurrenceCount / nodeCount) * minerConfiguration.minSupportCoefficient).toInt
       println(s"Node count: $nodeCount")
       println(s"Node occurrence count: $nodeOccurrenceCount")
       println(s"Min support: $minSupport")
@@ -127,8 +173,15 @@ class MB3 {
     (result, minSupport)
   }
 
-  private def getCandidates(minSupport: Int,
-                            dictionary: ArrayBuffer[DictionaryNode]): List[TreeEncoding] = {
+  /**
+    * Get tree encoding candidates.
+    *
+    * @param minSupport min count of occurrence encoding in tree
+    * @param dictionary array of all nodes in pre order
+    * @return tree encoding candidates
+    */
+  private def getEncodingCandidates(minSupport: Int,
+                                    dictionary: ArrayBuffer[DictionaryNode]): List[TreeEncoding] = {
     val occurrenceMap = mutable.Map.empty[TreeEncoding, ListBuffer[Occurrence]]
 
     for (
@@ -156,6 +209,16 @@ class MB3 {
     extendMap(occurrenceMap)
   }
 
+  /**
+    * Try to add new node to candidates.
+    * And check current encoding has enough occurrence count in dictionary.
+    *
+    * @param prefixEncoding current prefix encoding.
+    * @param occurrenceList list of all occurrence in dictionary of prefix
+    * @param minSupport     min count of occurrence encoding in tree
+    * @param dictionary     array of all nodes in pre order
+    * @return map of encoding to occurrence list and flag that indicates whether to add to candidates the prefix encoding
+    */
   private def extend(prefixEncoding: TreeEncoding,
                      occurrenceList: ListBuffer[Occurrence],
                      minSupport: Int,
