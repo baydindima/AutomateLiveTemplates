@@ -9,6 +9,7 @@ import com.intellij.psi.{PsiDirectory, PsiFile, PsiManager}
 import edu.jetbrains.plugin.lt.extensions.ep.FileTypeTemplateFilter
 import edu.jetbrains.plugin.lt.finder.common.TemplateWithFileType
 import edu.jetbrains.plugin.lt.finder.miner.{JavaFileTypeTemplateFilter, JavaTemplateProcessor, MB3, MinerConfiguration}
+import edu.jetbrains.plugin.lt.finder.sstree.DefaultSearchConfiguration
 import edu.jetbrains.plugin.lt.newui.TemplatesDialog
 import edu.jetbrains.plugin.lt.ui.NoTemplatesDialog
 
@@ -46,6 +47,7 @@ class LiveTemplateFindAction extends AnAction {
 
         val templates = new MB3(
           new MinerConfiguration(minSupportCoefficient = 0.5),
+          DefaultSearchConfiguration,
           JavaFileTypeTemplateFilter,
           JavaTemplateProcessor).getTemplates(astNodes)
 

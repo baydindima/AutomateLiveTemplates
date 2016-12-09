@@ -3,6 +3,7 @@ package edu.jetbrains.plugin.lt.finder.miner
 import com.intellij.ide.highlighter.JavaFileType
 import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.LightCodeInsightFixtureTestCase
+import edu.jetbrains.plugin.lt.finder.sstree.DefaultSearchConfiguration
 import org.scalatest.Matchers
 
 /**
@@ -63,6 +64,7 @@ class MB3Spec extends LightCodeInsightFixtureTestCase with Matchers {
   def testMB3Parenthesis(): Unit = {
     val nodes = buildJavaPsiFiles(classText1).map(_.getNode)
     new MB3(new MinerConfiguration(minSupportCoefficient = 0.5),
+      DefaultSearchConfiguration,
       JavaFileTypeTemplateFilter,
       JavaTemplateProcessor).getTemplates(nodes)
   }
@@ -70,6 +72,7 @@ class MB3Spec extends LightCodeInsightFixtureTestCase with Matchers {
   def testMB3Imports(): Unit = {
     val nodes = buildJavaPsiFiles(classText2).map(_.getNode)
     new MB3(new MinerConfiguration(minSupportCoefficient = 0.5),
+      DefaultSearchConfiguration,
       JavaFileTypeTemplateFilter,
       JavaTemplateProcessor).getTemplates(nodes) should have size 0
   }

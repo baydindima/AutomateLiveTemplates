@@ -2,7 +2,7 @@ package edu.jetbrains.plugin.lt.finder.miner
 
 import com.intellij.lang.ASTNode
 import edu.jetbrains.plugin.lt.finder.common.Template
-import edu.jetbrains.plugin.lt.finder.sstree.DefaultSearchConfiguration
+import edu.jetbrains.plugin.lt.finder.sstree.TemplateSearchConfiguration
 
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
@@ -12,11 +12,13 @@ import scala.collection.mutable.{ArrayBuffer, ListBuffer}
   * Class implements MB3 algorithm.
   * It returns frequent induced trees in forest.
   *
-  * @param minerConfiguration parameters of MB3 algorithm
-  * @param templateFilter     filter of nodes
-  * @param templateProcessor  processor of templates
+  * @param minerConfiguration          parameters of MB3 algorithm
+  * @param templateSearchConfiguration configuration for filter templates
+  * @param templateFilter              filter of nodes
+  * @param templateProcessor           processor of templates
   */
 class MB3(val minerConfiguration: MinerConfiguration,
+          val templateSearchConfiguration: TemplateSearchConfiguration,
           val templateFilter: FileTypeTemplateFilter,
           val templateProcessor: TemplateProcessor) {
 
@@ -35,13 +37,13 @@ class MB3(val minerConfiguration: MinerConfiguration,
     treeList.map(templateProcessor.process).foreach {
       str =>
         println(str.text)
-        println(if (DefaultSearchConfiguration.isPossibleTemplate(str)) "valid" else 'invalid)
+        println(if (templateSearchConfiguration.isPossibleTemplate(str)) "valid" else 'invalid)
         println("_______________________")
     }
 
 
     val templates = treeList.map(templateProcessor.process)
-      .filter(DefaultSearchConfiguration.isPossibleTemplate)
+      .filter(templateSearchConfiguration.isPossibleTemplate)
       .groupBy(_.text).mapValues(_.head).values.toList.sortBy(-_.text.length)
     println(s"Tree count: ${treeList.size}")
     templates
