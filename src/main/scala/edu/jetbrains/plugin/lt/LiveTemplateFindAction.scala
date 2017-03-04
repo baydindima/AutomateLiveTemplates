@@ -10,7 +10,7 @@ import edu.jetbrains.plugin.lt.extensions.ep.FileTypeTemplateFilter
 import edu.jetbrains.plugin.lt.finder.common.TemplateWithFileType
 import edu.jetbrains.plugin.lt.finder.miner.{JavaFileTypeTemplateFilter, JavaTemplateProcessor, MB3, MinerConfiguration}
 import edu.jetbrains.plugin.lt.finder.sstree.DefaultSearchConfiguration
-import edu.jetbrains.plugin.lt.newui.TemplatesDialog
+import edu.jetbrains.plugin.lt.newui.{ChooseFileTypeDialog, TemplatesDialog}
 import edu.jetbrains.plugin.lt.ui.NoTemplatesDialog
 
 import scala.collection.JavaConversions._
@@ -36,26 +36,33 @@ class LiveTemplateFindAction extends AnAction {
         (filter.keywordsNotAnalyze ++ filter.keywordsNotShow).toSeq)
       .toMap
 
-    allFiles.filter(_.getFileType == JavaFileType.INSTANCE).groupBy(_.getFileType).foreach { case (fileType, files) =>
-      val astNodes = files.map(_.getNode).filter(_ != null)
-      if (astNodes.nonEmpty) {
-        println(s"File type ${fileType.getName}")
-        println(s"AstNodes count: ${astNodes.size}")
-        println(s"Free memory ${Runtime.getRuntime.freeMemory()}")
+    val fileTypeToFiles = allFiles.groupBy(_.getFileType)
 
-        val start = System.currentTimeMillis()
+    val chooseFileTypeDialog = new ChooseFileTypeDialog(mapAsJavaMap(fileTypeToFiles.mapValues(_.size)))
+    val selectedFileTypes = chooseFileTypeDialog.showDialog().toSet
 
-        val templates = new MB3(
-          new MinerConfiguration(minSupportCoefficient = 0.5),
-          DefaultSearchConfiguration,
-          JavaFileTypeTemplateFilter,
-          JavaTemplateProcessor).getTemplates(astNodes)
+    if (Option(selectedFileTypes).isDefined) {
+      fileTypeToFiles.filter(f => selectedFileTypes(f._1)).foreach { case (fileType, files) =>
+        val astNodes = files.map(_.getNode).filter(_ != null)
+        if (astNodes.nonEmpty) {
+          println(s"File type ${fileType.getName}")
+          println(s"AstNodes count: ${astNodes.size}")
+          println(s"Free memory ${Runtime.getRuntime.freeMemory()}")
 
-        println(s"Time for templates extracting: ${System.currentTimeMillis() - start}")
-        if (templates.nonEmpty) {
-          new TemplatesDialog(project, templates.map(new TemplateWithFileType(_, fileType))).show()
-        } else {
-          new NoTemplatesDialog(project).show()
+          val start = System.currentTimeMillis()
+
+          val templates = new MB3(
+            new MinerConfiguration(minSupportCoefficient = 0.5),
+            DefaultSearchConfiguration,
+            JavaFileTypeTemplateFilter,
+            JavaTemplateProcessor).getTemplates(astNodes)
+
+          println(s"Time for templates extracting: ${System.currentTimeMillis() - start}")
+          if (templates.nonEmpty) {
+            new TemplatesDialog(project, templates.map(new TemplateWithFileType(_, fileType))).show()
+          } else {
+            new NoTemplatesDialog(project).show()
+          }
         }
       }
     }

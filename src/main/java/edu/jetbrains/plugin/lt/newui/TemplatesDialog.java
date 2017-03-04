@@ -59,7 +59,7 @@ public class TemplatesDialog extends DialogWrapper {
         nextButton.setEnabled(currentIndex != templates.size() - 1);
         addButton.setEnabled(!savedTemplates.contains(currentIndex));
         numberLabel.setText(currentIndex + 1 + "/" + templates.size());
-        occurrencesLabel.setText(templates.get(currentIndex).template().templateStatistic().placeholderCount() + " occurrences");
+        occurrencesLabel.setText(templates.get(currentIndex).template().templateStatistic().placeholderCount() + " placeholder count.");
         errorLabel.setText(EMPTY_STRING);
         abbreviationTextField.setText(EMPTY_STRING);
         descriptionTextField.setText(EMPTY_STRING);
