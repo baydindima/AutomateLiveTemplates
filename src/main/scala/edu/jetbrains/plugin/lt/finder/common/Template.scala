@@ -17,14 +17,17 @@ object Template {
 }
 
 class TemplateStatistic(val placeholderCount: Int,
-                        val nodeCount: Int)
+                        val nodeCount: Int,
+                        val occurrenceCount: Int)
 
 object TemplateStatistic {
-  def placeholder: TemplateStatistic = new TemplateStatistic(1, 1)
+  def placeholder: TemplateStatistic = new TemplateStatistic(1, 1, Int.MaxValue)
 
   def apply(statistics: Seq[TemplateStatistic]): TemplateStatistic =
-    new TemplateStatistic(statistics.map(_.placeholderCount).sum,
-      statistics.map(_.nodeCount).sum + 1
+    new TemplateStatistic(
+      statistics.map(_.placeholderCount).sum,
+      statistics.map(_.nodeCount).sum + 1,
+      statistics.map(_.occurrenceCount).min
     )
 }
 

@@ -4,15 +4,15 @@ package edu.jetbrains.plugin.lt.finder.miner
 import edu.jetbrains.plugin.lt.finder.common.{Template, TemplateStatistic}
 
 trait TemplateProcessor {
-  def process(treeEncoding: TreeEncoding): Template
+  def process(treeEncoding: TreeEncoding, occurrenceCount: Int): Template
 }
 
 object JavaTemplateProcessor extends TemplateProcessor {
 
-  override def process(treeEncoding: TreeEncoding): Template = {
+  override def process(treeEncoding: TreeEncoding, occurrenceCount: Int): Template = {
     import DefaultTemplateProcessor._
     val compressedList = getCompressedEncodeList(treeEncoding.encodeList)
-    val template = getTemplate(compressedList)
+    val template = getTemplate(compressedList, occurrenceCount)
     new Template(template.text + getParenthesisList(compressedList).mkString(sep = " "), template.templateStatistic)
   }
 
@@ -38,7 +38,7 @@ object JavaTemplateProcessor extends TemplateProcessor {
 
 object DefaultTemplateProcessor extends TemplateProcessor {
 
-  override def process(treeEncoding: TreeEncoding): Template = getTemplate(getCompressedEncodeList(treeEncoding.encodeList))
+  override def process(treeEncoding: TreeEncoding, occurrenceCount: Int): Template = getTemplate(getCompressedEncodeList(treeEncoding.encodeList), occurrenceCount)
 
   def getCompressedEncodeList(encodeList: List[PathNode]): List[PathNode] = {
     def helper(encodeList: List[PathNode], prevIsPlaceholder: Boolean, accList: List[PathNode]): List[PathNode] = encodeList match {
@@ -66,7 +66,7 @@ object DefaultTemplateProcessor extends TemplateProcessor {
     helper(encodeList, prevIsPlaceholder = false, List.empty)
   }
 
-  def getTemplate(encodeList: List[PathNode]): Template = {
+  def getTemplate(encodeList: List[PathNode], occurrenceCount: Int): Template = {
     var placeholderCount = 0
     var nodeCount = 0
     val text = encodeList.map {
@@ -78,6 +78,6 @@ object DefaultTemplateProcessor extends TemplateProcessor {
         " #_# "
       case _ => ""
     }.mkString
-    new Template(text, new TemplateStatistic(placeholderCount, nodeCount))
+    new Template(text, new TemplateStatistic(placeholderCount, nodeCount, occurrenceCount))
   }
 }

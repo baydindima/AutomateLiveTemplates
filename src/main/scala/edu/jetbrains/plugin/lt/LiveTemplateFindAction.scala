@@ -10,7 +10,7 @@ import edu.jetbrains.plugin.lt.extensions.ep.FileTypeTemplateFilter
 import edu.jetbrains.plugin.lt.finder.common.TemplateWithFileType
 import edu.jetbrains.plugin.lt.finder.miner.{JavaFileTypeTemplateFilter, JavaTemplateProcessor, MB3, MinerConfiguration}
 import edu.jetbrains.plugin.lt.finder.sstree.DefaultSearchConfiguration
-import edu.jetbrains.plugin.lt.newui.{ChooseFileTypeDialog, TemplatesDialog}
+import edu.jetbrains.plugin.lt.newui.{ChooseFileTypeDialog, ChooseImportantTemplates, TemplatesDialog}
 import edu.jetbrains.plugin.lt.ui.NoTemplatesDialog
 
 import scala.collection.JavaConversions._
@@ -59,7 +59,12 @@ class LiveTemplateFindAction extends AnAction {
 
           println(s"Time for templates extracting: ${System.currentTimeMillis() - start}")
           if (templates.nonEmpty) {
-            new TemplatesDialog(project, templates.map(new TemplateWithFileType(_, fileType))).show()
+            val importantTemplates = new ChooseImportantTemplates(project, fileType, templates).showDialog()
+            importantTemplates.foreach { template =>
+               println(template.text)
+               println("_____________________________")
+            }
+//            new TemplatesDialog(project, templates.map(new TemplateWithFileType(_, fileType))).show()
           } else {
             new NoTemplatesDialog(project).show()
           }

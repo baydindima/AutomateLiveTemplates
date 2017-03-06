@@ -34,7 +34,9 @@ class MB3(val minerConfiguration: MinerConfiguration,
 
     val treeList = getEncodingCandidates(minSupport, dict)
 
-    treeList.map(templateProcessor.process).foreach {
+    treeList.map { case (treeEncoding, occurrenceCount) =>
+      templateProcessor.process(treeEncoding, occurrenceCount)
+    }.foreach {
       str =>
         println(str.text)
         println(if (templateSearchConfiguration.isPossibleTemplate(str)) "valid" else 'invalid)
@@ -42,8 +44,9 @@ class MB3(val minerConfiguration: MinerConfiguration,
     }
 
 
-    val templates = treeList.map(templateProcessor.process)
-      .filter(templateSearchConfiguration.isPossibleTemplate)
+    val templates = treeList.map { case (treeEncoding, occurrenceCount) =>
+      templateProcessor.process(treeEncoding, occurrenceCount)
+    }.filter(templateSearchConfiguration.isPossibleTemplate)
       .groupBy(_.text).mapValues(_.head).values.toList.sortBy(-_.text.length)
     println(s"Tree count: ${treeList.size}")
     templates
@@ -183,7 +186,7 @@ class MB3(val minerConfiguration: MinerConfiguration,
     * @return tree encoding candidates
     */
   private def getEncodingCandidates(minSupport: Int,
-                                    dictionary: ArrayBuffer[DictionaryNode]): List[TreeEncoding] = {
+                                    dictionary: ArrayBuffer[DictionaryNode]): List[(TreeEncoding, Int)] = {
     val occurrenceMap = mutable.Map.empty[TreeEncoding, ListBuffer[Occurrence]]
 
     for (
@@ -200,11 +203,11 @@ class MB3(val minerConfiguration: MinerConfiguration,
       }
     }
 
-    def extendMap(occMap: mutable.Map[TreeEncoding, ListBuffer[Occurrence]]): List[TreeEncoding] = {
+    def extendMap(occMap: mutable.Map[TreeEncoding, ListBuffer[Occurrence]]): List[(TreeEncoding, Int)] = {
       occMap.par.flatMap { case (enc, encList) =>
-        val (newCandidates, isTemplate) = extend(enc, encList, minSupport, dictionary)
+        val (newCandidates, occurrenceCount, isTemplate) = extend(enc, encList, minSupport, dictionary)
         val result = extendMap(newCandidates)
-        if (isTemplate) enc :: result else result
+        if (isTemplate) (enc, occurrenceCount) :: result else result
       }.toList
     }
 
@@ -224,7 +227,7 @@ class MB3(val minerConfiguration: MinerConfiguration,
   private def extend(prefixEncoding: TreeEncoding,
                      occurrenceList: ListBuffer[Occurrence],
                      minSupport: Int,
-                     dictionary: ArrayBuffer[DictionaryNode]): (mutable.Map[TreeEncoding, ListBuffer[Occurrence]], Boolean) = {
+                     dictionary: ArrayBuffer[DictionaryNode]): (mutable.Map[TreeEncoding, ListBuffer[Occurrence]], Int, Boolean) = {
     val completedBuckets: mutable.HashMap[TreeEncoding, ListBuffer[Occurrence]] = mutable.HashMap.empty
     var uncompletedBuckets: mutable.LinkedHashMap[TreeEncoding, ListBuffer[Occurrence]] = mutable.LinkedHashMap.empty
 
@@ -301,7 +304,7 @@ class MB3(val minerConfiguration: MinerConfiguration,
 
     (completedBuckets.map { case (enc, occList) =>
       TreeEncoding(enc.encodeList ::: prefixEncoding.encodeList) -> occList
-    }, totalCount - placedRoots.size >= minSupport)
+    }, totalCount - placedRoots.size, totalCount - placedRoots.size >= minSupport)
   }
 }
 
@@ -331,7 +334,7 @@ class DictionaryPlaceholder(override val depth: Int,
 
 case class TreeEncoding(encodeList: List[PathNode]) {
 
-  override def toString: String = DefaultTemplateProcessor.getTemplate(encodeList).text
+  override def toString: String = DefaultTemplateProcessor.getTemplate(encodeList, 0).text
 
 }
 
