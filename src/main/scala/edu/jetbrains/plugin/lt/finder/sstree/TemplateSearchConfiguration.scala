@@ -19,6 +19,7 @@ trait TemplateSearchConfiguration {
 object DefaultSearchConfiguration extends TemplateSearchConfiguration {
   val MatchesMinimum = 10
   val LengthMinimum = 30
+  val LengthMaximum = 300
   val PlaceholderMaximum = 3
   val NodesMinimum = 3
   val PlaceholderToNodeRatio = 0.5
@@ -34,9 +35,9 @@ object DefaultSearchConfiguration extends TemplateSearchConfiguration {
     template.templateStatistic.placeholderCount <= PlaceholderMaximum &&
       (template.templateStatistic.placeholderCount /
         template.templateStatistic.nodeCount.toDouble) <= PlaceholderToNodeRatio &&
-      //      template.templateStatistic.nodeCount >= NodesMinimum &&
-      template.text.length >= LengthMinimum
-
+      template.templateStatistic.nodeCount >= NodesMinimum &&
+      template.text.length >= LengthMinimum &&
+      template.text.length <= LengthMaximum
 
   override def isLikelyChildren(parent: InnerNodeInfo, children: List[NodeInfo]): Boolean = {
     val parentOccurrenceCount = parent.stat.occurrenceCount

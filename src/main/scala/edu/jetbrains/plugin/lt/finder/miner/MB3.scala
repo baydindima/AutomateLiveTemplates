@@ -42,13 +42,13 @@ class MB3(val minerConfiguration: MinerConfiguration,
         println(if (templateSearchConfiguration.isPossibleTemplate(str)) "valid" else 'invalid)
         println("_______________________")
     }
-
+    println(s"Tree count: ${treeList.size}")
 
     val templates = treeList.map { case (treeEncoding, occurrenceCount) =>
       templateProcessor.process(treeEncoding, occurrenceCount)
     }.filter(templateSearchConfiguration.isPossibleTemplate)
       .groupBy(_.text).mapValues(_.head).values.toList.sortBy(-_.text.length)
-    println(s"Tree count: ${treeList.size}")
+
     templates
   }
 
@@ -92,13 +92,10 @@ class MB3(val minerConfiguration: MinerConfiguration,
     /**
       * DFS traversal by ast tree.
       *
-      * @param curNode   current ast node
-      * @param parentPos position of parent node in dictionary
-      * @param curDepth  current depth in ast tree
+      * @param curNode  current ast node
+      * @param curDepth current depth in ast tree
       */
-    def dfs(curNode: ASTNode, parentPos: Int, curDepth: Int): Unit = {
-      val curPos = result.size
-
+    def dfs(curNode: ASTNode, curDepth: Int): Unit = {
       def childCountNext(child: ASTNode, childrenCountAcc: Int): Int = child match {
         case null => childrenCountAcc
         case childNode => childCountNext(childNode.getTreeNext, childrenCountAcc + 1)
@@ -109,8 +106,7 @@ class MB3(val minerConfiguration: MinerConfiguration,
         case childNode =>
           dfs(
             curNode = childNode,
-            curDepth = curDepth + 1,
-            parentPos = curPos)
+            curDepth = curDepth + 1)
 
           dfsNext(childNode.getTreeNext)
       }
@@ -127,12 +123,10 @@ class MB3(val minerConfiguration: MinerConfiguration,
         if (shouldAnalyze) {
           new Node(
             nodeId = nodeId,
-            depth = curDepth,
-            parentPos = parentPos)
+            depth = curDepth)
         } else {
           new DictionaryPlaceholder(
-            depth = curDepth,
-            parentPos = parentPos)
+            depth = curDepth)
         }
 
       result += dictNode
@@ -144,7 +138,7 @@ class MB3(val minerConfiguration: MinerConfiguration,
     }
 
     roots.foreach { root =>
-      dfs(root, -1, 0)
+      dfs(root, 0)
     }
 
     /**
@@ -169,9 +163,7 @@ class MB3(val minerConfiguration: MinerConfiguration,
 
     result.transform {
       case node: Node =>
-        if (freqNodes(node.nodeId)) node else new DictionaryPlaceholder(
-          depth = node.depth,
-          parentPos = node.parentPos)
+        if (freqNodes(node.nodeId)) node else new DictionaryPlaceholder(depth = node.depth)
       case d => d
     }
 
@@ -273,9 +265,7 @@ class MB3(val minerConfiguration: MinerConfiguration,
           }
         }
       }
-      if (!found) {
-        unplacedRoots -= rootPos
-      }
+      if (!found) unplacedRoots -= rootPos
     }
 
     while (unplacedRoots.size >= minSupport) {
@@ -314,22 +304,20 @@ class Occurrence(val rootPos: Int,
 }
 
 class DictionaryNode(val depth: Int,
-                     val parentPos: Int,
                      var rightmostLeafPos: Int) {
+
 
 }
 
 
 class Node(val nodeId: NodeId,
-           override val depth: Int,
-           override val parentPos: Int) extends DictionaryNode(depth, parentPos, -1) {
-  override def toString = s"Node($nodeId, $depth, $parentPos)"
+           override val depth: Int) extends DictionaryNode(depth, -1) {
+  override def toString = s"Node($nodeId, $depth)"
 }
 
-class DictionaryPlaceholder(override val depth: Int,
-                            override val parentPos: Int) extends DictionaryNode(depth, parentPos, -1) {
+class DictionaryPlaceholder(override val depth: Int) extends DictionaryNode(depth, -1) {
 
-  override def toString = s"DictionaryPlaceholder($depth, $parentPos)"
+  override def toString = s"DictionaryPlaceholder($depth)"
 }
 
 case class TreeEncoding(encodeList: List[PathNode]) {

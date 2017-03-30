@@ -13,7 +13,7 @@ object JavaTemplateProcessor extends TemplateProcessor {
     import DefaultTemplateProcessor._
     val compressedList = getCompressedEncodeList(treeEncoding.encodeList)
     val template = getTemplate(compressedList, occurrenceCount)
-    new Template(template.text + getParenthesisList(compressedList).mkString(sep = " "), template.templateStatistic)
+    template.copy(text = template.text + getParenthesisList(compressedList).mkString(sep = " "))
   }
 
   def getParenthesisList(encodeList: List[PathNode]): List[String] = {
