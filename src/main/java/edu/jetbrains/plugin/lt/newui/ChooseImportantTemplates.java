@@ -122,7 +122,9 @@ public class ChooseImportantTemplates extends JDialog {
         nextButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                nextTemplate();
+                if (nextButton.isEnabled()) {
+                    nextTemplate();
+                }
                 super.mouseClicked(e);
             }
         });
@@ -130,7 +132,9 @@ public class ChooseImportantTemplates extends JDialog {
         prevButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                prevTemplate();
+                if (prevButton.isEnabled()) {
+                    prevTemplate();
+                }
                 super.mouseClicked(e);
             }
         });

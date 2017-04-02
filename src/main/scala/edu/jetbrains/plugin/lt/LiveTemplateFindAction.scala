@@ -1,16 +1,17 @@
 package edu.jetbrains.plugin.lt
 
-import com.intellij.ide.highlighter.JavaFileType
+import com.abahgat.suffixtree.GeneralizedSuffixTree
+import com.intellij.lang.FileASTNode
 import com.intellij.openapi.actionSystem.{AnAction, AnActionEvent}
 import com.intellij.openapi.fileTypes.{PlainTextFileType, UnknownFileType}
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.{PsiDirectory, PsiFile, PsiManager}
 import edu.jetbrains.plugin.lt.extensions.ep.FileTypeTemplateFilter
-import edu.jetbrains.plugin.lt.finder.common.TemplateWithFileType
-import edu.jetbrains.plugin.lt.finder.miner.{JavaFileTypeTemplateFilter, JavaTemplateProcessor, MB3, MinerConfiguration}
-import edu.jetbrains.plugin.lt.finder.sstree.DefaultSearchConfiguration
-import edu.jetbrains.plugin.lt.newui.{ChooseFileTypeDialog, ChooseImportantTemplates, TemplatesDialog}
+import edu.jetbrains.plugin.lt.finder.common.Template
+import edu.jetbrains.plugin.lt.finder.miner.{DefaultTemplateProcessor, JavaFileTypeTemplateFilter, JavaTemplateProcessor, MB3, MinerConfiguration}
+import edu.jetbrains.plugin.lt.finder.sstree.{DefaultSearchConfiguration, TemplateFilter}
+import edu.jetbrains.plugin.lt.newui.{ChooseFileTypeDialog, ChooseImportantTemplates}
 import edu.jetbrains.plugin.lt.ui.NoTemplatesDialog
 
 import scala.collection.JavaConversions._
@@ -19,6 +20,19 @@ import scala.collection.JavaConversions._
   * Created by Dmitriy Baidin.
   */
 class LiveTemplateFindAction extends AnAction {
+
+  def removeSubStrings(templates: Seq[Template]): Seq[Template] = {
+    val gst = new GeneralizedSuffixTree
+    templates.sortBy(-_.text.length).zipWithIndex.filter { case (template, index) =>
+      val matches = gst.search(template.text).toSeq
+      if (matches.isEmpty) {
+        gst.put(template.text, index)
+        true
+      } else {
+        false
+      }
+    }.map(_._1)
+  }
 
   override def actionPerformed(anActionEvent: AnActionEvent): Unit = {
     val project = anActionEvent.getProject
@@ -47,24 +61,16 @@ class LiveTemplateFindAction extends AnAction {
         if (astNodes.nonEmpty) {
           println(s"File type ${fileType.getName}")
           println(s"AstNodes count: ${astNodes.size}")
-          println(s"Free memory ${Runtime.getRuntime.freeMemory()}")
 
-          val start = System.currentTimeMillis()
 
-          val templates = new MB3(
-            new MinerConfiguration(minSupportCoefficient = 0.5),
-            DefaultSearchConfiguration,
-            JavaFileTypeTemplateFilter,
-            JavaTemplateProcessor).getTemplates(astNodes)
+          val templates = getTemplates(astNodes)
 
-          println(s"Time for templates extracting: ${System.currentTimeMillis() - start}")
           if (templates.nonEmpty) {
             val importantTemplates = new ChooseImportantTemplates(project, fileType, templates).showDialog()
             importantTemplates.foreach { template =>
                println(template.text)
                println("_____________________________")
             }
-//            new TemplatesDialog(project, templates.map(new TemplateWithFileType(_, fileType))).show()
           } else {
             new NoTemplatesDialog(project).show()
           }
@@ -73,6 +79,48 @@ class LiveTemplateFindAction extends AnAction {
     }
 
 
+  }
+
+  private def getTemplates(astNodes: Seq[FileASTNode],
+                           maxTemplateCount: Int = 20,
+                           startMinSupportCoefficient: Double = 0.5,
+                           stepMinSupportCoefficient: Double = 0.5): Seq[Template] = {
+
+    val (dict, originalMinSupport) = new MB3(
+      new MinerConfiguration(1),
+      JavaFileTypeTemplateFilter,
+      DefaultTemplateProcessor).buildDictionary(astNodes)
+    val templateFilter = new TemplateFilter(DefaultSearchConfiguration)
+
+    def helper(minSupportCoefficient: Double): Seq[Template] = {
+      val minSupport = (minSupportCoefficient * originalMinSupport).toInt
+
+      println(s"Free memory ${Runtime.getRuntime.freeMemory()}")
+      println(s"Min support coefficient: $minSupport")
+      val start = System.currentTimeMillis()
+
+      val templates = new MB3(
+        new MinerConfiguration(minSupport),
+        JavaFileTypeTemplateFilter,
+        DefaultTemplateProcessor).getTemplatesByDictAndMinSupport(dict, minSupport)
+
+      val filteredTemplates = templates.filter(templateFilter.isPossibleTemplate)
+
+      println(s"Filtered templates count: ${filteredTemplates.size}")
+
+      val uniqTemplates = removeSubStrings(templates.filter(templateFilter.isPossibleTemplate))
+
+      println(s"Uniq templates count: ${uniqTemplates.size}")
+
+      println(s"Time for templates extracting: ${System.currentTimeMillis() - start}")
+
+      if (uniqTemplates.size > maxTemplateCount)
+        helper(minSupportCoefficient + stepMinSupportCoefficient)
+      else
+        uniqTemplates
+    }
+
+    helper(startMinSupportCoefficient)
   }
 
   private def getFiles(roots: Seq[VirtualFile], psiManager: PsiManager): Seq[PsiFile] = {

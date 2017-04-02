@@ -22,12 +22,12 @@ version '1.0'
 
 repositories {
     mavenCentral()
+    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
-    compile group: 'org.graphstream', name: 'gs-core', version: '1.1.1'
-    compile 'de.sciss:prefuse-core:1.0.1'
     compile 'org.scala-lang:scala-library:2.11.8'
+    compile 'com.github.abahgat:suffixtree:1ce6869'
     testCompile 'junit:junit:4.12'
     testCompile 'org.scalatest:scalatest_2.11:3.0.0'
     testCompile 'org.scalamock:scalamock-scalatest-support_2.11:3.3.0'

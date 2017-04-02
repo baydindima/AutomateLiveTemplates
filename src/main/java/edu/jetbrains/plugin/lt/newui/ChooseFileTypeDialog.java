@@ -18,7 +18,7 @@ public class ChooseFileTypeDialog extends JDialog {
     private JPanel bodyPane;
     private JCheckBoxList jCheckBoxList;
     private List<FileType> fileTypes = new ArrayList<>();
-    private List<FileType> selectedFileTypes;
+    private List<FileType> selectedFileTypes = new ArrayList<>();
 
     public ChooseFileTypeDialog(Map<FileType, Integer> fileTypeToCount) {
         setContentPane(contentPane);
@@ -59,7 +59,6 @@ public class ChooseFileTypeDialog extends JDialog {
     }
 
     private void onOK() {
-        selectedFileTypes = new ArrayList<>();
         ListModel<JCheckBox> model = jCheckBoxList.getModel();
         for (int i = 0; i < model.getSize(); i++) {
             JCheckBox checkBox = model.getElementAt(i);

@@ -13,12 +13,10 @@ import scala.collection.mutable.{ArrayBuffer, ListBuffer}
   * It returns frequent induced trees in forest.
   *
   * @param minerConfiguration          parameters of MB3 algorithm
-  * @param templateSearchConfiguration configuration for filter templates
   * @param templateFilter              filter of nodes
   * @param templateProcessor           processor of templates
   */
 class MB3(val minerConfiguration: MinerConfiguration,
-          val templateSearchConfiguration: TemplateSearchConfiguration,
           val templateFilter: FileTypeTemplateFilter,
           val templateProcessor: TemplateProcessor) {
 
@@ -31,23 +29,22 @@ class MB3(val minerConfiguration: MinerConfiguration,
   def getTemplates(roots: Seq[ASTNode]): List[Template] = {
     val (dict, minSupport) = buildDictionary(roots)
     println(s"Dictionary length ${dict.length}")
+    getTemplatesByDictAndMinSupport(dict, minSupport)
+  }
 
+  def getTemplatesByDictAndMinSupport(dict: ArrayBuffer[DictionaryNode], minSupport: Int): List[Template] = {
     val treeList = getEncodingCandidates(minSupport, dict)
 
     treeList.map { case (treeEncoding, occurrenceCount) =>
       templateProcessor.process(treeEncoding, occurrenceCount)
-    }.foreach {
-      str =>
-        println(str.text)
-        println(if (templateSearchConfiguration.isPossibleTemplate(str)) "valid" else 'invalid)
-        println("_______________________")
     }
-    println(s"Tree count: ${treeList.size}")
 
     val templates = treeList.map { case (treeEncoding, occurrenceCount) =>
       templateProcessor.process(treeEncoding, occurrenceCount)
-    }.filter(templateSearchConfiguration.isPossibleTemplate)
-      .groupBy(_.text).mapValues(_.head).values.toList.sortBy(-_.text.length)
+    }.groupBy(_.text).mapValues(_.head).values.toList.sortBy(-_.text.length)
+
+    println(s"Found template count: ${templates.size}")
+    println(s"Duplicate count: ${treeList.size - templates.size}")
 
     templates
   }
@@ -59,7 +56,7 @@ class MB3(val minerConfiguration: MinerConfiguration,
     * @param roots root nodes of files
     * @return dictionary and min support count
     */
-  private def buildDictionary(roots: Seq[ASTNode]): (ArrayBuffer[DictionaryNode], Int) = {
+   def buildDictionary(roots: Seq[ASTNode]): (ArrayBuffer[DictionaryNode], Int) = {
     val nodeIdToCount: mutable.Map[NodeId, Int] = mutable.Map.empty
 
     /**
@@ -156,7 +153,7 @@ class MB3(val minerConfiguration: MinerConfiguration,
       println(s"Node occurrence count: $nodeOccurrenceCount")
       println(s"Min support: $minSupport")
 
-      (nodeIdToCount.filter(_._2 >= minSupport).keys.toSet, minSupport)
+      (nodeIdToCount.filter(_._2 >= minSupport).keys.toSet, minSupport.max(1))
     }
 
     val (freqNodes, minSupport) = getFreqNodes(nodeIdToCount)
@@ -223,6 +220,8 @@ class MB3(val minerConfiguration: MinerConfiguration,
     val completedBuckets: mutable.HashMap[TreeEncoding, ListBuffer[Occurrence]] = mutable.HashMap.empty
     var uncompletedBuckets: mutable.LinkedHashMap[TreeEncoding, ListBuffer[Occurrence]] = mutable.LinkedHashMap.empty
 
+    var notFoundRootCount = 0
+
     val unplacedRoots: mutable.HashSet[Int] = mutable.HashSet.empty
     occurrenceList.foreach(o => unplacedRoots += o.rootPos)
     val totalCount = unplacedRoots.size
@@ -265,10 +264,18 @@ class MB3(val minerConfiguration: MinerConfiguration,
           }
         }
       }
-      if (!found) unplacedRoots -= rootPos
+      if (!found) {
+        notFoundRootCount += 1
+        val newOccurrence = new Occurrence(rootPos, pos)
+        rightPosMap += (newOccurrence.rootPos -> pos)
+      }
     }
 
-    while (unplacedRoots.size >= minSupport) {
+    if (TreeEncoding(prefixEncoding.encodeList.reverse).toString.contains("String.format(\"some string\", \"val\", 1, 2, 4")) {
+      println("catch it")
+    }
+
+    while (unplacedRoots.size >= minSupport && notFoundRootCount < totalCount) {
       unplacedRoots.foreach(next)
       val newUncompletedBuckets: mutable.LinkedHashMap[TreeEncoding, ListBuffer[Occurrence]] = mutable.LinkedHashMap.empty
       uncompletedBuckets.foreach { case (enc, occList) =>
