@@ -176,7 +176,7 @@ class MB3(val minerConfiguration: MinerConfiguration,
     */
   private def getEncodingCandidates(minSupport: Int,
                                     dictionary: ArrayBuffer[DictionaryNode]): List[(TreeEncoding, Int)] = {
-    val occurrenceMap = mutable.Map.empty[TreeEncoding, ListBuffer[Occurrence]]
+    val occurrenceMap = mutable.Map.empty[TreeEncoding, mutable.Buffer[Occurrence]]
 
     for (
       i <- dictionary.indices
@@ -192,7 +192,7 @@ class MB3(val minerConfiguration: MinerConfiguration,
       }
     }
 
-    def extendMap(occMap: mutable.Map[TreeEncoding, ListBuffer[Occurrence]]): List[(TreeEncoding, Int)] = {
+    def extendMap(occMap: mutable.Map[TreeEncoding, mutable.Buffer[Occurrence]]): List[(TreeEncoding, Int)] = {
       occMap.par.flatMap { case (enc, encList) =>
         val (newCandidates, occurrenceCount, isTemplate) = extend(enc, encList, minSupport, dictionary)
         val result = extendMap(newCandidates)
@@ -214,13 +214,11 @@ class MB3(val minerConfiguration: MinerConfiguration,
     * @return map of encoding to occurrence list and flag that indicates whether to add to candidates the prefix encoding
     */
   private def extend(prefixEncoding: TreeEncoding,
-                     occurrenceList: ListBuffer[Occurrence],
+                     occurrenceList: mutable.Buffer[Occurrence],
                      minSupport: Int,
-                     dictionary: ArrayBuffer[DictionaryNode]): (mutable.Map[TreeEncoding, ListBuffer[Occurrence]], Int, Boolean) = {
-    val completedBuckets: mutable.HashMap[TreeEncoding, ListBuffer[Occurrence]] = mutable.HashMap.empty
-    var uncompletedBuckets: mutable.LinkedHashMap[TreeEncoding, ListBuffer[Occurrence]] = mutable.LinkedHashMap.empty
-
-    var notFoundRootCount = 0
+                     dictionary: ArrayBuffer[DictionaryNode]): (mutable.Map[TreeEncoding, mutable.Buffer[Occurrence]], Int, Boolean) = {
+    val completedBuckets: mutable.HashMap[TreeEncoding, mutable.Buffer[Occurrence]] = mutable.HashMap.empty
+    val uncompletedBuckets: mutable.LinkedHashMap[TreeEncoding, mutable.HashSet[Occurrence]] = mutable.LinkedHashMap.empty
 
     val unplacedRoots: mutable.HashSet[Int] = mutable.HashSet.empty
     occurrenceList.foreach(o => unplacedRoots += o.rootPos)
@@ -232,6 +230,21 @@ class MB3(val minerConfiguration: MinerConfiguration,
     occurrenceList.foreach(o => rightPosMap += (o.rootPos -> o.rightLeafPos))
 
     var first = true
+    var changed = false
+
+    def addOccurrence(treeEncoding: TreeEncoding, occurrence: Occurrence): Unit = {
+      if (completedBuckets.contains(treeEncoding)) {
+        unplacedRoots -= occurrence.rootPos
+        placedRoots += occurrence.rootPos
+        occurrence +=: completedBuckets(treeEncoding)
+      } else {
+        rightPosMap += (occurrence.rootPos -> occurrence.rightLeafPos)
+        val bucket = uncompletedBuckets.getOrElseUpdate(treeEncoding, {
+          new mutable.HashSet[Occurrence]()
+        }) += occurrence
+        if (bucket.size >= minSupport) changed = true
+      }
+    }
 
     def next(rootPos: Int): Unit = {
       val rightmostLeaf = dictionary(rootPos).rightmostLeafPos
@@ -247,55 +260,61 @@ class MB3(val minerConfiguration: MinerConfiguration,
           dictNode match {
             case node: Node =>
               found = true
-              val treeEncoding = TreeEncoding(EncodeNode(node.nodeId) :: (if (first && rightPosMap(rootPos) == pos - 1) List.empty else List(Placeholder)))
+
+              val encodeNode = EncodeNode(node.nodeId)
               val newOccurrence = new Occurrence(rootPos, pos)
 
-              if (completedBuckets.contains(treeEncoding)) {
-                unplacedRoots -= rootPos
-                placedRoots += rootPos
-                newOccurrence +=: completedBuckets(treeEncoding)
+              val treeEncodings = (if (first && rightPosMap(rootPos) == pos - 1) {
+                Seq(encodeNode :: Nil, encodeNode :: Placeholder :: Nil)
               } else {
-                rightPosMap += (newOccurrence.rootPos -> pos)
-                uncompletedBuckets.getOrElseUpdate(treeEncoding, {
-                  new ListBuffer[Occurrence]()
-                }) += newOccurrence
-              }
+                Seq(encodeNode :: Placeholder :: Nil)
+              }).map(TreeEncoding)
+
+              treeEncodings.foreach(addOccurrence(_, newOccurrence))
+
             case _ =>
           }
         }
       }
       if (!found) {
-        notFoundRootCount += 1
+        unplacedRoots -= rootPos
         val newOccurrence = new Occurrence(rootPos, pos)
         rightPosMap += (newOccurrence.rootPos -> pos)
       }
     }
 
-    if (TreeEncoding(prefixEncoding.encodeList.reverse).toString.contains("String.format(\"some string\", \"val\", 1, 2, 4")) {
+    if (TreeEncoding(prefixEncoding.encodeList.reverse).toString.contains("@Override\n\tprotected  #_#   #_# (")) {
       println("catch it")
     }
 
-    while (unplacedRoots.size >= minSupport && notFoundRootCount < totalCount) {
+    while (unplacedRoots.nonEmpty) {
+      changed = false
       unplacedRoots.foreach(next)
-      val newUncompletedBuckets: mutable.LinkedHashMap[TreeEncoding, ListBuffer[Occurrence]] = mutable.LinkedHashMap.empty
-      uncompletedBuckets.foreach { case (enc, occList) =>
-        if (occList.size >= minSupport) {
-          val filteredOccList = occList.filterNot(o => placedRoots.contains(o.rootPos))
-          if (filteredOccList.size >= minSupport) {
-            filteredOccList.foreach { o =>
-              placedRoots += o.rootPos
-              unplacedRoots -= o.rootPos
+      if (changed) {
+        uncompletedBuckets.transform { case (enc, occList) =>
+          if (occList.size >= minSupport) {
+            val filteredOccList = occList.filterNot(o => placedRoots.contains(o.rootPos))
+            if (filteredOccList.size >= minSupport) {
+              filteredOccList.foreach { o =>
+                placedRoots += o.rootPos
+                unplacedRoots -= o.rootPos
+              }
+              completedBuckets += (enc -> filteredOccList.toBuffer)
+              mutable.HashSet.empty
+            } else {
+              filteredOccList
             }
-            completedBuckets += (enc -> filteredOccList)
           } else {
-            newUncompletedBuckets += (enc -> filteredOccList)
+            occList
           }
-        } else {
-          newUncompletedBuckets += (enc -> occList)
         }
       }
       first = false
-      uncompletedBuckets = newUncompletedBuckets
+    }
+
+    if (totalCount - placedRoots.size >= minSupport) {
+      println(TreeEncoding(prefixEncoding.encodeList.reverse).toString)
+      println("______________")
     }
 
 
@@ -303,18 +322,45 @@ class MB3(val minerConfiguration: MinerConfiguration,
       TreeEncoding(enc.encodeList ::: prefixEncoding.encodeList) -> occList
     }, totalCount - placedRoots.size, totalCount - placedRoots.size >= minSupport)
   }
+
+
+  def printBucketsByString(str: String, buckets: mutable.LinkedHashMap[TreeEncoding, mutable.HashSet[Occurrence]], dictionary: ArrayBuffer[DictionaryNode]): Unit = {
+    buckets.filter(_._1.toString == str).values.foreach(printOccurrenceList(_, dictionary))
+  }
+
+  def printOccurrenceList(occurrenceList: mutable.HashSet[Occurrence], dictionary: ArrayBuffer[DictionaryNode]): Unit = {
+    occurrenceList.foreach { occ =>
+      println(TreeEncoding((occ.rootPos to occ.rightLeafPos).map(dictionary).map {
+        case node: Node => EncodeNode(node.nodeId)
+        case _ => Placeholder
+      }.toList).toString)
+      println("_________________")
+    }
+  }
 }
 
 class Occurrence(val rootPos: Int,
                  val rightLeafPos: Int) {
   override def toString: String = s"{root: $rootPos, right: $rightLeafPos}"
+
+
+  def canEqual(other: Any): Boolean = other.isInstanceOf[Occurrence]
+
+  override def equals(other: Any): Boolean = other match {
+    case that: Occurrence =>
+      (that canEqual this) &&
+        rootPos == that.rootPos
+    case _ => false
+  }
+
+  override def hashCode(): Int = {
+    val state = Seq(rootPos)
+    state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
+  }
 }
 
 class DictionaryNode(val depth: Int,
-                     var rightmostLeafPos: Int) {
-
-
-}
+                     var rightmostLeafPos: Int)
 
 
 class Node(val nodeId: NodeId,

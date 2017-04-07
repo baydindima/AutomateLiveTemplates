@@ -82,45 +82,73 @@ class LiveTemplateFindAction extends AnAction {
   }
 
   private def getTemplates(astNodes: Seq[FileASTNode],
-                           maxTemplateCount: Int = 20,
+                           desiredTemplateCount: Int = 20,
                            startMinSupportCoefficient: Double = 0.5,
                            stepMinSupportCoefficient: Double = 0.5): Seq[Template] = {
+    import LiveTemplateFindAction._
+    import Math._
 
-    val (dict, originalMinSupport) = new MB3(
-      new MinerConfiguration(1),
-      JavaFileTypeTemplateFilter,
-      DefaultTemplateProcessor).buildDictionary(astNodes)
+//    val (dict, originalMinSupport) = new MB3(
+//      new MinerConfiguration(1),
+//      JavaFileTypeTemplateFilter,
+//      DefaultTemplateProcessor).buildDictionary(astNodes)
     val templateFilter = new TemplateFilter(DefaultSearchConfiguration)
 
-    def helper(minSupportCoefficient: Double): Seq[Template] = {
-      val minSupport = (minSupportCoefficient * originalMinSupport).toInt
+    def helper(left: Int, right: Int, bestResult: Seq[Template], minDiff: Int): Seq[Template] = {
+      if (left < right) {
+        val med = left + (right - left) / 2
+//        val minSupport = (med * originalMinSupport * MinSupportCoefficientStep).toInt
 
-      println(s"Free memory ${Runtime.getRuntime.freeMemory()}")
-      println(s"Min support coefficient: $minSupport")
-      val start = System.currentTimeMillis()
+        println(s"Free memory ${Runtime.getRuntime.freeMemory()}")
+        println(s"Min support coefficient: ${med * MinSupportCoefficientStep}")
+//        println(s"Min support: $minSupport")
+        val start = System.currentTimeMillis()
 
-      val templates = new MB3(
-        new MinerConfiguration(minSupport),
-        JavaFileTypeTemplateFilter,
-        DefaultTemplateProcessor).getTemplatesByDictAndMinSupport(dict, minSupport)
+//        val templates = new MB3(
+//          new MinerConfiguration(minSupport),
+//          JavaFileTypeTemplateFilter,
+//          DefaultTemplateProcessor).getTemplatesByDictAndMinSupport(dict, minSupport)
 
-      val filteredTemplates = templates.filter(templateFilter.isPossibleTemplate)
+        val templates = new MB3(
+          new MinerConfiguration(med * MinSupportCoefficientStep),
+          JavaFileTypeTemplateFilter,
+          DefaultTemplateProcessor).getTemplates(astNodes)
 
-      println(s"Filtered templates count: ${filteredTemplates.size}")
+        val filteredTemplates = templates.filter(templateFilter.isPossibleTemplate)
 
-      val uniqTemplates = removeSubStrings(templates.filter(templateFilter.isPossibleTemplate))
+        println(s"Not matching the filter criteria templates count: ${templates.size - filteredTemplates.size}")
 
-      println(s"Uniq templates count: ${uniqTemplates.size}")
+        val uniqTemplates = removeSubStrings(filteredTemplates)
 
-      println(s"Time for templates extracting: ${System.currentTimeMillis() - start}")
+        println(s"Uniq templates count: ${uniqTemplates.size}")
 
-      if (uniqTemplates.size > maxTemplateCount)
-        helper(minSupportCoefficient + stepMinSupportCoefficient)
-      else
-        uniqTemplates
+        println(s"Time for templates extracting: ${System.currentTimeMillis() - start}")
+
+
+        uniqTemplates.size match {
+          case _ if uniqTemplates.size == desiredTemplateCount => uniqTemplates
+          case _ if uniqTemplates.size < desiredTemplateCount =>
+            val curDiff = abs(desiredTemplateCount - uniqTemplates.size)
+            if (curDiff < minDiff) {
+              helper(left, med, uniqTemplates, curDiff)
+            } else {
+              helper(left, med, bestResult, minDiff)
+            }
+          case _ if uniqTemplates.size > desiredTemplateCount =>
+            val curDiff = abs(desiredTemplateCount - uniqTemplates.size)
+
+            if (curDiff < minDiff) {
+              helper(med + 1, right, uniqTemplates, curDiff)
+            } else {
+              helper(med + 1, right, bestResult, minDiff)
+            }
+        }
+      } else {
+        bestResult
+      }
     }
 
-    helper(startMinSupportCoefficient)
+    helper(MinMinSupportCoefficient, MaxMinSupportCoefficient + 1, Seq.empty, Int.MaxValue)
   }
 
   private def getFiles(roots: Seq[VirtualFile], psiManager: PsiManager): Seq[PsiFile] = {
@@ -132,6 +160,13 @@ class LiveTemplateFindAction extends AnAction {
       .filter(_.getFileType != PlainTextFileType.INSTANCE)
       .filter(_.getFileType != UnknownFileType.INSTANCE)
   }
+}
+
+object LiveTemplateFindAction {
+  val MinMinSupportCoefficient = 1
+  val MaxMinSupportCoefficient = 32
+  val MinSupportCoefficientStep: Double = 0.5
+
 }
 
 
