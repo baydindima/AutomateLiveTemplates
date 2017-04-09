@@ -176,7 +176,7 @@ class MB3(val minerConfiguration: MinerConfiguration,
     */
   private def getEncodingCandidates(minSupport: Int,
                                     dictionary: ArrayBuffer[DictionaryNode]): List[(TreeEncoding, Int)] = {
-    val occurrenceMap = mutable.Map.empty[TreeEncoding, mutable.Buffer[Occurrence]]
+    val occurrenceMap = mutable.Map.empty[(TreeEncoding, List[PathNode]), mutable.Buffer[Occurrence]]
 
     for (
       i <- dictionary.indices
@@ -185,16 +185,16 @@ class MB3(val minerConfiguration: MinerConfiguration,
         case node: Node => node.nodeId match {
           case inner: InnerNodeId =>
             val encode = TreeEncoding(List(EncodeNode(inner)))
-            new Occurrence(i, i) +=: occurrenceMap.getOrElseUpdate(encode, new ListBuffer[Occurrence]())
+            new Occurrence(i, i) +=: occurrenceMap.getOrElseUpdate((encode, List.empty), new ListBuffer[Occurrence]())
           case _ =>
         }
         case _ =>
       }
     }
 
-    def extendMap(occMap: mutable.Map[TreeEncoding, mutable.Buffer[Occurrence]]): List[(TreeEncoding, Int)] = {
-      occMap.par.flatMap { case (enc, encList) =>
-        val (newCandidates, occurrenceCount, isTemplate) = extend(enc, encList, minSupport, dictionary)
+    def extendMap(occMap: mutable.Map[(TreeEncoding, List[PathNode]), mutable.Buffer[Occurrence]]): List[(TreeEncoding, Int)] = {
+      occMap.flatMap { case ((enc, parentPath), encList) =>
+        val (newCandidates, occurrenceCount, isTemplate) = extend(enc, encList, parentPath, minSupport, dictionary)
         val result = extendMap(newCandidates)
         if (isTemplate) (enc, occurrenceCount) :: result else result
       }.toList
@@ -215,10 +215,11 @@ class MB3(val minerConfiguration: MinerConfiguration,
     */
   private def extend(prefixEncoding: TreeEncoding,
                      occurrenceList: mutable.Buffer[Occurrence],
+                     parentPath: List[PathNode],
                      minSupport: Int,
-                     dictionary: ArrayBuffer[DictionaryNode]): (mutable.Map[TreeEncoding, mutable.Buffer[Occurrence]], Int, Boolean) = {
-    val completedBuckets: mutable.HashMap[TreeEncoding, mutable.Buffer[Occurrence]] = mutable.HashMap.empty
-    val uncompletedBuckets: mutable.LinkedHashMap[TreeEncoding, mutable.HashSet[Occurrence]] = mutable.LinkedHashMap.empty
+                     dictionary: ArrayBuffer[DictionaryNode]): (mutable.Map[(TreeEncoding, List[PathNode]), mutable.Buffer[Occurrence]], Int, Boolean) = {
+    val completedBuckets: mutable.HashMap[(TreeEncoding, List[PathNode]), mutable.Buffer[Occurrence]] = mutable.HashMap.empty
+    val uncompletedBuckets: mutable.LinkedHashMap[(TreeEncoding, List[PathNode]), mutable.HashSet[Occurrence]] = mutable.LinkedHashMap.empty
 
     val unplacedRoots: mutable.HashSet[Int] = mutable.HashSet.empty
     occurrenceList.foreach(o => unplacedRoots += o.rootPos)
@@ -229,17 +230,23 @@ class MB3(val minerConfiguration: MinerConfiguration,
     val rightPosMap = mutable.Map.empty[Int, Int]
     occurrenceList.foreach(o => rightPosMap += (o.rootPos -> o.rightLeafPos))
 
+    val maxDepthMap: mutable.Map[Int, Int] = mutable.HashMap.empty
+    occurrenceList.foreach(o => maxDepthMap += (o.rootPos -> (dictionary(rightPosMap(o.rootPos)).depth + 1)))
+
+    val parentPathMap: mutable.Map[Int, List[PathNode]] = mutable.HashMap.empty
+    occurrenceList.foreach(o => parentPathMap += (o.rootPos -> parentPath))
+
     var first = true
     var changed = false
 
-    def addOccurrence(treeEncoding: TreeEncoding, occurrence: Occurrence): Unit = {
-      if (completedBuckets.contains(treeEncoding)) {
+    def addOccurrence(treeEncoding: TreeEncoding, curParentPath: List[PathNode], occurrence: Occurrence): Unit = {
+      if (completedBuckets.contains((treeEncoding, curParentPath))) {
         unplacedRoots -= occurrence.rootPos
         placedRoots += occurrence.rootPos
-        occurrence +=: completedBuckets(treeEncoding)
+        occurrence +=: completedBuckets((treeEncoding, curParentPath))
       } else {
         rightPosMap += (occurrence.rootPos -> occurrence.rightLeafPos)
-        val bucket = uncompletedBuckets.getOrElseUpdate(treeEncoding, {
+        val bucket = uncompletedBuckets.getOrElseUpdate((treeEncoding, curParentPath), {
           new mutable.HashSet[Occurrence]()
         }) += occurrence
         if (bucket.size >= minSupport) changed = true
@@ -250,27 +257,42 @@ class MB3(val minerConfiguration: MinerConfiguration,
       val rightmostLeaf = dictionary(rootPos).rightmostLeafPos
       var found = false
       var pos = rightPosMap(rootPos)
-      var maxDepth = dictionary(pos).depth + 1
+      var curDepth = dictionary(pos).depth
+      var maxDepth = maxDepthMap(rootPos)
+      var parentPath = parentPathMap(rootPos)
       while (!found && pos < rightmostLeaf) {
         pos += 1
         val dictNode = dictionary(pos)
         val depth = dictNode.depth
         if (depth <= maxDepth) {
           maxDepth = depth
+          maxDepthMap += (rootPos -> maxDepth)
+
+          val depthDiff = curDepth - depth
+          if (depthDiff > 0) {
+            parentPath = parentPath.drop(depthDiff)
+          } else if (depthDiff < 0) {
+            parentPath = prefixEncoding.encodeList.headOption.fold(List.empty[PathNode]) { head => head :: parentPath }
+          }
+          parentPathMap += (rootPos -> parentPath)
+
+          curDepth = depth
+
           dictNode match {
             case node: Node =>
+
               found = true
 
               val encodeNode = EncodeNode(node.nodeId)
               val newOccurrence = new Occurrence(rootPos, pos)
 
               val treeEncodings = (if (first && rightPosMap(rootPos) == pos - 1) {
-                Seq(encodeNode :: Nil, encodeNode :: Placeholder :: Nil)
+                List(encodeNode :: Nil, encodeNode :: Placeholder :: Nil)
               } else {
-                Seq(encodeNode :: Placeholder :: Nil)
+                List(encodeNode :: Placeholder :: Nil)
               }).map(TreeEncoding)
 
-              treeEncodings.foreach(addOccurrence(_, newOccurrence))
+              treeEncodings.foreach(addOccurrence(_, parentPath, newOccurrence))
 
             case _ =>
           }
@@ -283,9 +305,9 @@ class MB3(val minerConfiguration: MinerConfiguration,
       }
     }
 
-    if (TreeEncoding(prefixEncoding.encodeList.reverse).toString.contains("@Override\n\tprotected  #_#   #_# (")) {
-      println("catch it")
-    }
+//    if (TreeEncoding(prefixEncoding.encodeList.reverse).toString.contains("@Override\n\tprotected  #_#   #_# (")) {
+//      println("catch it")
+//    }
 
     while (unplacedRoots.nonEmpty) {
       changed = false
@@ -318,14 +340,14 @@ class MB3(val minerConfiguration: MinerConfiguration,
     }
 
 
-    (completedBuckets.map { case (enc, occList) =>
-      TreeEncoding(enc.encodeList ::: prefixEncoding.encodeList) -> occList
+    (completedBuckets.map { case ((enc, parentPathNew), occList) =>
+      (TreeEncoding(enc.encodeList ::: prefixEncoding.encodeList), parentPathNew) -> occList
     }, totalCount - placedRoots.size, totalCount - placedRoots.size >= minSupport)
   }
 
 
-  def printBucketsByString(str: String, buckets: mutable.LinkedHashMap[TreeEncoding, mutable.HashSet[Occurrence]], dictionary: ArrayBuffer[DictionaryNode]): Unit = {
-    buckets.filter(_._1.toString == str).values.foreach(printOccurrenceList(_, dictionary))
+  def printBucketsByString(str: String, buckets: mutable.LinkedHashMap[(TreeEncoding, List[PathNode]), mutable.HashSet[Occurrence]], dictionary: ArrayBuffer[DictionaryNode]): Unit = {
+    buckets.filter(_._1._1.toString == str).values.foreach(printOccurrenceList(_, dictionary))
   }
 
   def printOccurrenceList(occurrenceList: mutable.HashSet[Occurrence], dictionary: ArrayBuffer[DictionaryNode]): Unit = {
