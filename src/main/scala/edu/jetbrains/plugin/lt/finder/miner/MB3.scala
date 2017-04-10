@@ -193,7 +193,7 @@ class MB3(val minerConfiguration: MinerConfiguration,
     }
 
     def extendMap(occMap: mutable.Map[(TreeEncoding, List[PathNode]), mutable.Buffer[Occurrence]]): List[(TreeEncoding, Int)] = {
-      occMap.flatMap { case ((enc, parentPath), encList) =>
+      occMap.par.flatMap { case ((enc, parentPath), encList) =>
         val (newCandidates, occurrenceCount, isTemplate) = extend(enc, encList, parentPath, minSupport, dictionary)
         val result = extendMap(newCandidates)
         if (isTemplate) (enc, occurrenceCount) :: result else result
@@ -334,11 +334,10 @@ class MB3(val minerConfiguration: MinerConfiguration,
       first = false
     }
 
-    if (totalCount - placedRoots.size >= minSupport) {
-      println(TreeEncoding(prefixEncoding.encodeList.reverse).toString)
-      println("______________")
-    }
-
+//    if (totalCount - placedRoots.size >= minSupport) {
+//      println(TreeEncoding(prefixEncoding.encodeList.reverse).toString)
+//      println("______________")
+//    }
 
     (completedBuckets.map { case ((enc, parentPathNew), occList) =>
       (TreeEncoding(enc.encodeList ::: prefixEncoding.encodeList), parentPathNew) -> occList

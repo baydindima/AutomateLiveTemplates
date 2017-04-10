@@ -3,17 +3,18 @@ package edu.jetbrains.plugin.lt
 import com.abahgat.suffixtree.GeneralizedSuffixTree
 import com.intellij.lang.FileASTNode
 import com.intellij.openapi.actionSystem.{AnAction, AnActionEvent}
-import com.intellij.openapi.fileTypes.{PlainTextFileType, UnknownFileType}
+import com.intellij.openapi.fileTypes.{FileType, PlainTextFileType, UnknownFileType}
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.{PsiDirectory, PsiFile, PsiManager}
 import edu.jetbrains.plugin.lt.extensions.ep.FileTypeTemplateFilter
 import edu.jetbrains.plugin.lt.finder.common.Template
 import edu.jetbrains.plugin.lt.finder.miner.{DefaultTemplateProcessor, JavaFileTypeTemplateFilter, JavaTemplateProcessor, MB3, MinerConfiguration}
-import edu.jetbrains.plugin.lt.finder.sstree.{DefaultSearchConfiguration, TemplateFilter}
+import edu.jetbrains.plugin.lt.finder.sstree.{DefaultSearchConfiguration, TemplateFilter, TemplateSearchConfiguration}
 import edu.jetbrains.plugin.lt.newui.{ChooseFileTypeDialog, ChooseImportantTemplates}
 import edu.jetbrains.plugin.lt.ui.NoTemplatesDialog
 
+import scala.annotation.tailrec
 import scala.collection.JavaConversions._
 
 /**
@@ -55,59 +56,54 @@ class LiveTemplateFindAction extends AnAction {
     val chooseFileTypeDialog = new ChooseFileTypeDialog(mapAsJavaMap(fileTypeToFiles.mapValues(_.size)))
     val selectedFileTypes = chooseFileTypeDialog.showDialog().toSet
 
+    @tailrec
+    def step(astNodes: Seq[FileASTNode], fileType: FileType, templateSearchConfiguration: TemplateSearchConfiguration): Unit = {
+      val templates = getTemplates(astNodes, templateSearchConfiguration)
+
+      if (templates.nonEmpty) {
+        val importantTemplates = new ChooseImportantTemplates(project, fileType, templates).showDialog()
+        if (importantTemplates.nonEmpty) {
+          val newTemplateSearchConfiguration = generateNewTemplateSearchConfiguration(importantTemplates)
+          println(s"Generated search config: $newTemplateSearchConfiguration")
+          val mergedTemplateSearchConfiguration = templateSearchConfiguration.merge(newTemplateSearchConfiguration)
+          println(s"Merged search config: $mergedTemplateSearchConfiguration")
+          step(astNodes, fileType, mergedTemplateSearchConfiguration)
+        }
+      } else {
+        new NoTemplatesDialog(project).show()
+      }
+    }
+
     if (Option(selectedFileTypes).isDefined) {
       fileTypeToFiles.filter(f => selectedFileTypes(f._1)).foreach { case (fileType, files) =>
         val astNodes = files.map(_.getNode).filter(_ != null)
         if (astNodes.nonEmpty) {
           println(s"File type ${fileType.getName}")
           println(s"AstNodes count: ${astNodes.size}")
-
-
-          val templates = getTemplates(astNodes)
-
-          if (templates.nonEmpty) {
-            val importantTemplates = new ChooseImportantTemplates(project, fileType, templates).showDialog()
-            importantTemplates.foreach { template =>
-               println(template.text)
-               println("_____________________________")
-            }
-          } else {
-            new NoTemplatesDialog(project).show()
-          }
+          step(astNodes, fileType, DefaultSearchConfiguration)
         }
       }
     }
-
-
   }
 
   private def getTemplates(astNodes: Seq[FileASTNode],
+                           templateSearchConfiguration: TemplateSearchConfiguration,
                            desiredTemplateCount: Int = 20,
                            startMinSupportCoefficient: Double = 0.5,
                            stepMinSupportCoefficient: Double = 0.5): Seq[Template] = {
     import LiveTemplateFindAction._
     import Math._
 
-//    val (dict, originalMinSupport) = new MB3(
-//      new MinerConfiguration(1),
-//      JavaFileTypeTemplateFilter,
-//      DefaultTemplateProcessor).buildDictionary(astNodes)
-    val templateFilter = new TemplateFilter(DefaultSearchConfiguration)
+    val templateFilter = new TemplateFilter(templateSearchConfiguration)
 
     def helper(left: Int, right: Int, bestResult: Seq[Template], minDiff: Int): Seq[Template] = {
       if (left < right) {
         val med = left + (right - left) / 2
-//        val minSupport = (med * originalMinSupport * MinSupportCoefficientStep).toInt
 
         println(s"Free memory ${Runtime.getRuntime.freeMemory()}")
         println(s"Min support coefficient: ${med * MinSupportCoefficientStep}")
-//        println(s"Min support: $minSupport")
-        val start = System.currentTimeMillis()
 
-//        val templates = new MB3(
-//          new MinerConfiguration(minSupport),
-//          JavaFileTypeTemplateFilter,
-//          DefaultTemplateProcessor).getTemplatesByDictAndMinSupport(dict, minSupport)
+        val start = System.currentTimeMillis()
 
         val templates = new MB3(
           new MinerConfiguration(med * MinSupportCoefficientStep),
@@ -159,6 +155,22 @@ class LiveTemplateFindAction extends AnAction {
       .flatMap(allFilesFrom)
       .filter(_.getFileType != PlainTextFileType.INSTANCE)
       .filter(_.getFileType != UnknownFileType.INSTANCE)
+  }
+
+  private def generateNewTemplateSearchConfiguration(importantTemplates: Seq[Template]): TemplateSearchConfiguration = {
+    val templateStatistics = importantTemplates.map(_.templateStatistic)
+    val textLengthes = importantTemplates.map(_.text.length)
+    val placeholderMaximum = templateStatistics.map(_.placeholderCount).max
+
+    val nodeLengthes = templateStatistics.map(_.nodeCount)
+    new TemplateSearchConfiguration() {
+      override val lengthMaximum: Int = textLengthes.max
+      override val lengthMinimum: Int = textLengthes.min
+      override val maxPlaceholderToNodeRatio: Double = templateStatistics.map(_.placeholderToNodeRatio).max
+      override val nodesMaximum: Int = nodeLengthes.max
+      override val nodesMinimum: Int = nodeLengthes.min
+      override val placeholderMaximum: Int = templateStatistics.map(_.placeholderCount).max
+    }
   }
 }
 

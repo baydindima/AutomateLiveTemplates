@@ -18,7 +18,10 @@ object Template {
 
 class TemplateStatistic(val placeholderCount: Int,
                         val nodeCount: Int,
-                        val occurrenceCount: Int)
+                        val occurrenceCount: Int) {
+  def placeholderToNodeRatio: Double = placeholderCount /
+    nodeCount.toDouble
+}
 
 object TemplateStatistic {
   def placeholder: TemplateStatistic = new TemplateStatistic(1, 1, Int.MaxValue)

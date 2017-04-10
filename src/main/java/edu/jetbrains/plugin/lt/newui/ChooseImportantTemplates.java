@@ -93,7 +93,7 @@ public class ChooseImportantTemplates extends JDialog {
 
         textField.setText(template.text());
         occurenceCountLabel.setText("Occurrence count: " + template.templateStatistic().occurrenceCount());
-        isImportantCheckBox.setSelected(false);
+        isImportantCheckBox.setSelected(selectedTemplateList[templateIndex]);
     }
 
     private void onOK() {
