@@ -10,9 +10,9 @@ import org.scalatest.Matchers
   * Test for MB3 algorithm
   */
 class MB3Spec extends LightCodeInsightFixtureTestCase with Matchers {
-
   val classText1 =
     """
+
         package edu.jetbrains.plugin.lt.finder.tree;
 
         class Test {

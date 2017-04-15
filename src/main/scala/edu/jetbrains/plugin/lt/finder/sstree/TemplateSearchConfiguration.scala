@@ -39,23 +39,23 @@ trait TemplateSearchConfiguration {
 
 object TemplateSearchConfiguration {
 
-  val α = 0.25
+  val α = 0.5
 }
 
 object DefaultSearchConfiguration extends TemplateSearchConfiguration {
-  //  val lengthMinimum = 30
-  //  val lengthMaximum = 300
-  //  val placeholderMaximum = 3
-  //  val nodesMinimum = 3
-  //  val nodesMaximum = 300
-  //  val placeholderToNodeRatio = 0.5
-
-    val lengthMinimum = 30
-    val lengthMaximum = 3000
+    val lengthMinimum = 10
+    val lengthMaximum = 300
     val placeholderMaximum = 30
     val nodesMinimum = 3
-    val nodesMaximum = 3000
-  val maxPlaceholderToNodeRatio = 0.99
+    val nodesMaximum = 300
+    val maxPlaceholderToNodeRatio = 0.5
+
+//    val lengthMinimum = 30
+//    val lengthMaximum = 3000
+//    val placeholderMaximum = 30
+//    val nodesMinimum = 3
+//    val nodesMaximum = 3000
+//    val maxPlaceholderToNodeRatio = 0.99
 }
 
 class TemplateFilter(templateSearchConfiguration: TemplateSearchConfiguration) {

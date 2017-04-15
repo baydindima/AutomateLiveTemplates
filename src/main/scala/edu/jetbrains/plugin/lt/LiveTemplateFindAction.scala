@@ -88,7 +88,7 @@ class LiveTemplateFindAction extends AnAction {
 
   private def getTemplates(astNodes: Seq[FileASTNode],
                            templateSearchConfiguration: TemplateSearchConfiguration,
-                           desiredTemplateCount: Int = 20,
+                           desiredTemplateCount: Int = 50,
                            startMinSupportCoefficient: Double = 0.5,
                            stepMinSupportCoefficient: Double = 0.5): Seq[Template] = {
     import LiveTemplateFindAction._
