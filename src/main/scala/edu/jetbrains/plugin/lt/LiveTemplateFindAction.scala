@@ -9,7 +9,8 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.{PsiDirectory, PsiFile, PsiManager}
 import edu.jetbrains.plugin.lt.extensions.ep.FileTypeTemplateFilter
 import edu.jetbrains.plugin.lt.finder.common.Template
-import edu.jetbrains.plugin.lt.finder.miner.{DefaultTemplateProcessor, JavaFileTypeTemplateFilter, JavaTemplateProcessor, MB3, MinerConfiguration}
+import edu.jetbrains.plugin.lt.finder.miner.{JavaFileTypeNodeFilter, MB3, MinerConfiguration}
+import edu.jetbrains.plugin.lt.finder.postprocessor.{DefaultTemplatePostProcessor, DefaultTreeEncodingFormatter}
 import edu.jetbrains.plugin.lt.finder.sstree.{DefaultSearchConfiguration, TemplateFilter, TemplateSearchConfiguration}
 import edu.jetbrains.plugin.lt.newui.{ChooseFileTypeDialog, ChooseImportantTemplates}
 import edu.jetbrains.plugin.lt.ui.NoTemplatesDialog
@@ -45,11 +46,11 @@ class LiveTemplateFindAction extends AnAction {
       roots = ProjectRootManager.getInstance(project).getContentSourceRoots,
       psiManager = PsiManager.getInstance(project)
     )
-    val filters = FileTypeTemplateFilter.EP_NAME
-      .getExtensions
-      .map(filter => filter.fileType ->
-        (filter.keywordsNotAnalyze ++ filter.keywordsNotShow).toSeq)
-      .toMap
+//    val filters = FileTypeTemplateFilter.EP_NAME
+//      .getExtensions
+//      .map(filter => filter.fileType ->
+//        (filter.keywordsNotAnalyze ++ filter.keywordsNotShow).toSeq)
+//      .toMap
 
     val fileTypeToFiles = allFiles.groupBy(_.getFileType)
 
@@ -94,7 +95,13 @@ class LiveTemplateFindAction extends AnAction {
     import LiveTemplateFindAction._
     import Math._
 
-    val templateFilter = new TemplateFilter(templateSearchConfiguration)
+    val templateFilterImpl = new TemplateFilter(templateSearchConfiguration)
+    val templateProcessor = new DefaultTemplatePostProcessor {
+
+      override protected val templateFilter: TemplateFilter = templateFilterImpl
+
+      override protected val treeEncodingFormatter = new DefaultTreeEncodingFormatter
+    }
 
     def helper(left: Int, right: Int, bestResult: Seq[Template], minDiff: Int): Seq[Template] = {
       if (left < right) {
@@ -107,14 +114,9 @@ class LiveTemplateFindAction extends AnAction {
 
         val templates = new MB3(
           new MinerConfiguration(med * MinSupportCoefficientStep),
-          JavaFileTypeTemplateFilter,
-          DefaultTemplateProcessor).getTemplates(astNodes)
+          JavaFileTypeNodeFilter).getFrequentTreeEncodings(astNodes)
 
-        val filteredTemplates = templates.filter(templateFilter.isPossibleTemplate)
-
-        println(s"Not matching the filter criteria templates count: ${templates.size - filteredTemplates.size}")
-
-        val uniqTemplates = removeSubStrings(filteredTemplates)
+        val uniqTemplates = templateProcessor.process(templates)
 
         println(s"Uniq templates count: ${uniqTemplates.size}")
 

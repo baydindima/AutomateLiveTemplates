@@ -2,6 +2,7 @@ package edu.jetbrains.plugin.lt.finder.miner
 
 import com.intellij.lang.ASTNode
 import edu.jetbrains.plugin.lt.finder.common.Template
+import edu.jetbrains.plugin.lt.finder.postprocessor.DefaultTreeEncodingFormatter
 import edu.jetbrains.plugin.lt.finder.sstree.TemplateSearchConfiguration
 
 import scala.collection.mutable
@@ -13,12 +14,10 @@ import scala.collection.mutable.{ArrayBuffer, ListBuffer}
   * It returns frequent induced trees in forest.
   *
   * @param minerConfiguration          parameters of MB3 algorithm
-  * @param templateFilter              filter of nodes
-  * @param templateProcessor           processor of templates
+  * @param nodeFilter              filter of nodes
   */
 class MB3(val minerConfiguration: MinerConfiguration,
-          val templateFilter: FileTypeTemplateFilter,
-          val templateProcessor: TemplateProcessor) {
+          val nodeFilter: FileTypeNodeFilter) {
 
   /**
     * Get templates of forest.
@@ -26,28 +25,12 @@ class MB3(val minerConfiguration: MinerConfiguration,
     * @param roots root nodes of files
     * @return templates
     */
-  def getTemplates(roots: Seq[ASTNode]): List[Template] = {
+  def getFrequentTreeEncodings(roots: Seq[ASTNode]): List[TreeEncodingWithCount] = {
     val (dict, minSupport) = buildDictionary(roots)
     println(s"Dictionary length ${dict.length}")
-    getTemplatesByDictAndMinSupport(dict, minSupport)
+    getEncodingCandidates(minSupport, dict)
   }
 
-  def getTemplatesByDictAndMinSupport(dict: ArrayBuffer[DictionaryNode], minSupport: Int): List[Template] = {
-    val treeList = getEncodingCandidates(minSupport, dict)
-
-    treeList.map { case (treeEncoding, occurrenceCount) =>
-      templateProcessor.process(treeEncoding, occurrenceCount)
-    }
-
-    val templates = treeList.map { case (treeEncoding, occurrenceCount) =>
-      templateProcessor.process(treeEncoding, occurrenceCount)
-    }.groupBy(_.text).mapValues(_.head).values.toList.sortBy(-_.text.length)
-
-    println(s"Found template count: ${templates.size}")
-    println(s"Duplicate count: ${treeList.size - templates.size}")
-
-    templates
-  }
 
   /**
     * Builds dictionary from nodes.
@@ -114,7 +97,7 @@ class MB3(val minerConfiguration: MinerConfiguration,
 
       addOccurrence(nodeId)
 
-      val shouldAnalyze = templateFilter.shouldAnalyze(nodeId)
+      val shouldAnalyze = nodeFilter.shouldAnalyze(nodeId)
 
       val dictNode: DictionaryNode =
         if (shouldAnalyze) {
@@ -175,7 +158,7 @@ class MB3(val minerConfiguration: MinerConfiguration,
     * @return tree encoding candidates
     */
   private def getEncodingCandidates(minSupport: Int,
-                                    dictionary: ArrayBuffer[DictionaryNode]): List[(TreeEncoding, Int)] = {
+                                    dictionary: ArrayBuffer[DictionaryNode]): List[TreeEncodingWithCount] = {
     val occurrenceMap = mutable.Map.empty[(TreeEncoding, List[PathNode]), mutable.Buffer[Occurrence]]
 
     for (
@@ -192,11 +175,11 @@ class MB3(val minerConfiguration: MinerConfiguration,
       }
     }
 
-    def extendMap(occMap: mutable.Map[(TreeEncoding, List[PathNode]), mutable.Buffer[Occurrence]]): List[(TreeEncoding, Int)] = {
+    def extendMap(occMap: mutable.Map[(TreeEncoding, List[PathNode]), mutable.Buffer[Occurrence]]): List[TreeEncodingWithCount] = {
       occMap.par.flatMap { case ((enc, parentPath), encList) =>
         val (newCandidates, occurrenceCount, isTemplate) = extend(enc, encList, parentPath, minSupport, dictionary)
         val result = extendMap(newCandidates)
-        if (isTemplate) (enc, occurrenceCount) :: result else result
+        if (isTemplate) TreeEncodingWithCount(enc, occurrenceCount) :: result else result
       }.toList
     }
 
@@ -290,7 +273,7 @@ class MB3(val minerConfiguration: MinerConfiguration,
                 List(encodeNode :: Nil, encodeNode :: Placeholder :: Nil)
               } else {
                 List(encodeNode :: Placeholder :: Nil)
-              }).map(TreeEncoding)
+              }).map(TreeEncoding(_))
 
               treeEncodings.foreach(addOccurrence(_, parentPath, newOccurrence))
 
@@ -395,9 +378,12 @@ class DictionaryPlaceholder(override val depth: Int) extends DictionaryNode(dept
 }
 
 case class TreeEncoding(encodeList: List[PathNode]) {
+  import TreeEncoding._
+  override def toString: String = formatter.process(this)._1
+}
 
-  override def toString: String = DefaultTemplateProcessor.getTemplate(encodeList, 0).text
-
+object TreeEncoding {
+  private val formatter: DefaultTreeEncodingFormatter = new DefaultTreeEncodingFormatter
 }
 
 trait PathNode
@@ -407,3 +393,5 @@ case class EncodeNode(nodeId: NodeId) extends PathNode
 object Up extends PathNode
 
 object Placeholder extends PathNode
+
+case class TreeEncodingWithCount(treeEncoding: TreeEncoding, count: Int)

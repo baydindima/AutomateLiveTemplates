@@ -43,12 +43,12 @@ object TemplateSearchConfiguration {
 }
 
 object DefaultSearchConfiguration extends TemplateSearchConfiguration {
-    val lengthMinimum = 10
-    val lengthMaximum = 300
-    val placeholderMaximum = 30
+    val lengthMinimum = 15
+    val lengthMaximum = 100
+    val placeholderMaximum = 5
     val nodesMinimum = 3
-    val nodesMaximum = 300
-    val maxPlaceholderToNodeRatio = 0.5
+    val nodesMaximum = 50
+    val maxPlaceholderToNodeRatio = 0.33
 
 //    val lengthMinimum = 30
 //    val lengthMaximum = 3000

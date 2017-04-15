@@ -1,6 +1,7 @@
 package edu.jetbrains.plugin.lt.finder.common
 
 import com.intellij.openapi.fileTypes.FileType
+import edu.jetbrains.plugin.lt.finder.miner.TreeEncoding
 
 /**
   * Created by Dmitriy Baidin.
@@ -9,12 +10,8 @@ class TemplateWithFileType(val template: Template,
                            val fileType: FileType)
 
 case class Template(text: String,
+                    treeEncoding: TreeEncoding,
                     templateStatistic: TemplateStatistic)
-
-object Template {
-  def apply(templates: Seq[Template]): Template =
-    new Template(templates.map(_.text).mkString(" "), TemplateStatistic(templates.map(_.templateStatistic)))
-}
 
 class TemplateStatistic(val placeholderCount: Int,
                         val nodeCount: Int,
@@ -22,17 +19,3 @@ class TemplateStatistic(val placeholderCount: Int,
   def placeholderToNodeRatio: Double = placeholderCount /
     nodeCount.toDouble
 }
-
-object TemplateStatistic {
-  def placeholder: TemplateStatistic = new TemplateStatistic(1, 1, Int.MaxValue)
-
-  def apply(statistics: Seq[TemplateStatistic]): TemplateStatistic =
-    new TemplateStatistic(
-      statistics.map(_.placeholderCount).sum,
-      statistics.map(_.nodeCount).sum + 1,
-      statistics.map(_.occurrenceCount).min
-    )
-}
-
-
-object PlaceholderTemplate extends Template("###", TemplateStatistic.placeholder)
