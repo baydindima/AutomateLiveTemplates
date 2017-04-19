@@ -5,7 +5,8 @@ import java.io.{File, FileFilter}
 import com.intellij.ide.highlighter.JavaFileType
 import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.LightCodeInsightFixtureTestCase
-import edu.jetbrains.plugin.lt.finder.postprocessor.{DefaultTemplatePostProcessor, DefaultTreeEncodingFormatter}
+import edu.jetbrains.plugin.lt.finder.extensions.JavaFileTypeNodeFilter
+import edu.jetbrains.plugin.lt.finder.postprocessor.{DefaultTemplatePostProcessor, DefaultTreeEncodingFormatter, JavaTreeEncodingFormatter}
 import edu.jetbrains.plugin.lt.finder.sstree.{DefaultSearchConfiguration, TemplateFilter}
 import org.scalatest.Matchers
 
@@ -42,12 +43,12 @@ class MB3LargeTest extends LightCodeInsightFixtureTestCase with Matchers {
 
       override protected val templateFilter: TemplateFilter = templateFilterImpl
 
-      override protected val treeEncodingFormatter = new DefaultTreeEncodingFormatter
+      override protected val treeEncodingFormatter = new JavaTreeEncodingFormatter
     }
 
     val templates = templateProcessor.process(new MB3(
       new MinerConfiguration(1),
-      JavaFileTypeNodeFilter).getFrequentTreeEncodings(psiFiles.map(_.getNode)))
+      new JavaFileTypeNodeFilter).getFrequentTreeEncodings(psiFiles.map(_.getNode)))
 
     templates.foreach{template =>
       println(template.text)

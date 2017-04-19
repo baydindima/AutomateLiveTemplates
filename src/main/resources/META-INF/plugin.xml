@@ -23,13 +23,17 @@
     -->
 
     <extensionPoints>
-        <extensionPoint name="fileTypeTemplateFilter"
-                        interface="edu.jetbrains.plugin.lt.extensions.ep.FileTypeTemplateFilter"/>
+        <extensionPoint name="fileTypeNodeFilter"
+                        interface="edu.jetbrains.plugin.lt.finder.extensions.FileTypeNodeFilter"/>
+        <extensionPoint name="treeEncodingFormatter"
+                        interface="edu.jetbrains.plugin.lt.finder.postprocessor.TreeEncodingFormatter"/>
     </extensionPoints>
 
     <extensions defaultExtensionNs="edu.jetbrains.plugin.lt">
-        <fileTypeTemplateFilter
-                implementation="edu.jetbrains.plugin.lt.extensions.JavaFileTypeTemplateFilter"/>
+        <fileTypeNodeFilter
+                implementation="edu.jetbrains.plugin.lt.finder.extensions.JavaFileTypeNodeFilter"/>
+        <treeEncodingFormatter
+                implementation="edu.jetbrains.plugin.lt.finder.postprocessor.JavaTreeEncodingFormatter"/>
     </extensions>
 
     <application-components>

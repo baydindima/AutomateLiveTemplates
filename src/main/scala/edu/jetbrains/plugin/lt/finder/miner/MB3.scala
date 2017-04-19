@@ -2,6 +2,7 @@ package edu.jetbrains.plugin.lt.finder.miner
 
 import com.intellij.lang.ASTNode
 import edu.jetbrains.plugin.lt.finder.common.Template
+import edu.jetbrains.plugin.lt.finder.extensions.FileTypeNodeFilter
 import edu.jetbrains.plugin.lt.finder.postprocessor.DefaultTreeEncodingFormatter
 import edu.jetbrains.plugin.lt.finder.sstree.TemplateSearchConfiguration
 

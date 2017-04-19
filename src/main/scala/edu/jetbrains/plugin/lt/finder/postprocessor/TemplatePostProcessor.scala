@@ -36,7 +36,7 @@ abstract class DefaultTemplatePostProcessor extends TemplatePostProcessor {
     val gst = new GeneralizedSuffixTree
 
     def distinct(): Seq[Template] = {
-      templates.map(t => (t, t.text.replaceAll("(\\s|\\n|\\t)*", ""))).sortBy(-_._2.length).zipWithIndex.filter { case ((template, text), index) =>
+      templates.map(t => (t, t.text.replaceAll("(\\s|\\n|\\t)*", ""))).sortBy(-_._2.length).zipWithIndex.filter { case ((_, text), index) =>
         val matches = gst.search(text)
         if (matches.isEmpty) {
           gst.put(text, index)

@@ -7,10 +7,10 @@ import com.intellij.openapi.fileTypes.{FileType, PlainTextFileType, UnknownFileT
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.{PsiDirectory, PsiFile, PsiManager}
-import edu.jetbrains.plugin.lt.extensions.ep.FileTypeTemplateFilter
 import edu.jetbrains.plugin.lt.finder.common.Template
-import edu.jetbrains.plugin.lt.finder.miner.{JavaFileTypeNodeFilter, MB3, MinerConfiguration}
-import edu.jetbrains.plugin.lt.finder.postprocessor.{DefaultTemplatePostProcessor, DefaultTreeEncodingFormatter}
+import edu.jetbrains.plugin.lt.finder.extensions.{DefaultFileTypeNodeFilter, FileTypeNodeFilter, JavaFileTypeNodeFilter}
+import edu.jetbrains.plugin.lt.finder.miner.{MB3, MinerConfiguration}
+import edu.jetbrains.plugin.lt.finder.postprocessor.{DefaultTemplatePostProcessor, DefaultTreeEncodingFormatter, TreeEncodingFormatter}
 import edu.jetbrains.plugin.lt.finder.sstree.{DefaultSearchConfiguration, TemplateFilter, TemplateSearchConfiguration}
 import edu.jetbrains.plugin.lt.newui.{ChooseFileTypeDialog, ChooseImportantTemplates}
 import edu.jetbrains.plugin.lt.ui.NoTemplatesDialog
@@ -18,23 +18,7 @@ import edu.jetbrains.plugin.lt.ui.NoTemplatesDialog
 import scala.annotation.tailrec
 import scala.collection.JavaConversions._
 
-/**
-  * Created by Dmitriy Baidin.
-  */
 class LiveTemplateFindAction extends AnAction {
-
-  def removeSubStrings(templates: Seq[Template]): Seq[Template] = {
-    val gst = new GeneralizedSuffixTree
-    templates.sortBy(-_.text.length).zipWithIndex.filter { case (template, index) =>
-      val matches = gst.search(template.text).toSeq
-      if (matches.isEmpty) {
-        gst.put(template.text, index)
-        true
-      } else {
-        false
-      }
-    }.map(_._1)
-  }
 
   override def actionPerformed(anActionEvent: AnActionEvent): Unit = {
     val project = anActionEvent.getProject
@@ -46,11 +30,16 @@ class LiveTemplateFindAction extends AnAction {
       roots = ProjectRootManager.getInstance(project).getContentSourceRoots,
       psiManager = PsiManager.getInstance(project)
     )
-//    val filters = FileTypeTemplateFilter.EP_NAME
-//      .getExtensions
-//      .map(filter => filter.fileType ->
-//        (filter.keywordsNotAnalyze ++ filter.keywordsNotShow).toSeq)
-//      .toMap
+
+    val treeEncodingFormatters = TreeEncodingFormatter.EP_NAME
+      .getExtensions
+      .map(f => (f.fileType, f))
+      .toMap
+
+    val fileTypeNodeFilters = FileTypeNodeFilter.EP_NAME
+      .getExtensions
+      .map(f => (f.fileType, f))
+      .toMap
 
     val fileTypeToFiles = allFiles.groupBy(_.getFileType)
 
@@ -59,7 +48,12 @@ class LiveTemplateFindAction extends AnAction {
 
     @tailrec
     def step(astNodes: Seq[FileASTNode], fileType: FileType, templateSearchConfiguration: TemplateSearchConfiguration): Unit = {
-      val templates = getTemplates(astNodes, templateSearchConfiguration)
+      val templates = getTemplates(
+        astNodes,
+        templateSearchConfiguration,
+        fileTypeNodeFilters.getOrElse(fileType, DefaultFileTypeNodeFilter),
+        treeEncodingFormatters.getOrElse(fileType, new DefaultTreeEncodingFormatter)
+      )
 
       if (templates.nonEmpty) {
         val importantTemplates = new ChooseImportantTemplates(project, fileType, templates).showDialog()
@@ -89,18 +83,21 @@ class LiveTemplateFindAction extends AnAction {
 
   private def getTemplates(astNodes: Seq[FileASTNode],
                            templateSearchConfiguration: TemplateSearchConfiguration,
+                           fileTypeNodeFilter: FileTypeNodeFilter,
+                           treeEncodingFormatterImpl: TreeEncodingFormatter,
                            desiredTemplateCount: Int = 50,
                            startMinSupportCoefficient: Double = 0.5,
                            stepMinSupportCoefficient: Double = 0.5): Seq[Template] = {
-    import LiveTemplateFindAction._
     import Math._
+
+    import LiveTemplateFindAction._
 
     val templateFilterImpl = new TemplateFilter(templateSearchConfiguration)
     val templateProcessor = new DefaultTemplatePostProcessor {
 
       override protected val templateFilter: TemplateFilter = templateFilterImpl
 
-      override protected val treeEncodingFormatter = new DefaultTreeEncodingFormatter
+      override protected val treeEncodingFormatter = treeEncodingFormatterImpl
     }
 
     def helper(left: Int, right: Int, bestResult: Seq[Template], minDiff: Int): Seq[Template] = {
@@ -114,7 +111,7 @@ class LiveTemplateFindAction extends AnAction {
 
         val templates = new MB3(
           new MinerConfiguration(med * MinSupportCoefficientStep),
-          JavaFileTypeNodeFilter).getFrequentTreeEncodings(astNodes)
+          fileTypeNodeFilter).getFrequentTreeEncodings(astNodes)
 
         val uniqTemplates = templateProcessor.process(templates)
 
