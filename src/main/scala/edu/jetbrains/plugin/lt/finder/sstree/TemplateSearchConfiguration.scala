@@ -13,7 +13,6 @@ trait TemplateSearchConfiguration {
   def placeholderMaximum: Int
   def nodesMinimum: Int
   def nodesMaximum: Int
-
   def maxPlaceholderToNodeRatio: Double
 
   override def toString: String = s"TemplateSearchConfiguration:\n" +
@@ -23,9 +22,19 @@ trait TemplateSearchConfiguration {
     s"nodesMinimum: $nodesMinimum,\n" +
     s"nodesMaximum: $nodesMaximum,\n" +
     s"maxPlaceholderToNodeRatio: $maxPlaceholderToNodeRatio"
+}
 
-  def merge(other: TemplateSearchConfiguration): TemplateSearchConfiguration = {
-    val self = this
+case class TemplateSearchConfigurationImpl(lengthMinimum: Int,
+                                            lengthMaximum: Int,
+                                            placeholderMaximum: Int,
+                                            nodesMinimum: Int,
+                                            nodesMaximum: Int,
+                                            maxPlaceholderToNodeRatio: Double
+                                          ) extends TemplateSearchConfiguration
+
+object TemplateSearchConfiguration {
+
+  def merge(self: TemplateSearchConfiguration, other: TemplateSearchConfiguration): TemplateSearchConfiguration = {
     new TemplateSearchConfiguration() {
       override val lengthMaximum: Int = self.lengthMaximum + (α * (other.lengthMaximum - self.lengthMaximum)).toInt
       override val lengthMinimum: Int = self.lengthMinimum + (α * (other.lengthMinimum - self.lengthMinimum)).toInt
@@ -35,9 +44,6 @@ trait TemplateSearchConfiguration {
       override val placeholderMaximum: Int = self.placeholderMaximum + (α * (other.placeholderMaximum - self.placeholderMaximum)).toInt
     }
   }
-}
-
-object TemplateSearchConfiguration {
 
   val α = 0.5
 }

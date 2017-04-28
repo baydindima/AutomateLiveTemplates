@@ -82,7 +82,7 @@ public class TemplatesDialog extends DialogWrapper {
             errorLabel.setErrorText(USED_ABBREVIATION, JBColor.RED);
             return;
         }
-        TemplateOps.saveTemplate(template, abbreviation, description);
+//        TemplateOps.saveTemplate(template, abbreviation, description);
         savedTemplates.add(currentIndex);
         refreshComponents();
     }

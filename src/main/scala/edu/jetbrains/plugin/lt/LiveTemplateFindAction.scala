@@ -1,22 +1,21 @@
 package edu.jetbrains.plugin.lt
 
-import com.abahgat.suffixtree.GeneralizedSuffixTree
-import com.intellij.lang.FileASTNode
-import com.intellij.openapi.actionSystem.{AnAction, AnActionEvent}
-import com.intellij.openapi.fileTypes.{FileType, PlainTextFileType, UnknownFileType}
-import com.intellij.openapi.roots.ProjectRootManager
-import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.psi.{PsiDirectory, PsiFile, PsiManager}
-import edu.jetbrains.plugin.lt.finder.common.Template
-import edu.jetbrains.plugin.lt.finder.extensions.{DefaultFileTypeNodeFilter, FileTypeNodeFilter, JavaFileTypeNodeFilter}
-import edu.jetbrains.plugin.lt.finder.miner.{MB3, MinerConfiguration}
-import edu.jetbrains.plugin.lt.finder.postprocessor.{DefaultTemplatePostProcessor, DefaultTreeEncodingFormatter, TreeEncodingFormatter}
-import edu.jetbrains.plugin.lt.finder.sstree.{DefaultSearchConfiguration, TemplateFilter, TemplateSearchConfiguration}
-import edu.jetbrains.plugin.lt.newui.{ChooseFileTypeDialog, ChooseImportantTemplates}
-import edu.jetbrains.plugin.lt.ui.NoTemplatesDialog
+ import com.intellij.lang.FileASTNode
+ import com.intellij.openapi.actionSystem.{AnAction, AnActionEvent}
+ import com.intellij.openapi.fileTypes.{FileType, PlainTextFileType, UnknownFileType}
+ import com.intellij.openapi.roots.ProjectRootManager
+ import com.intellij.openapi.vfs.VirtualFile
+ import com.intellij.psi.{PsiDirectory, PsiFile, PsiManager}
+ import edu.jetbrains.plugin.lt.finder.common.Template
+ import edu.jetbrains.plugin.lt.finder.extensions.{DefaultFileTypeNodeFilter, FileTypeNodeFilter}
+ import edu.jetbrains.plugin.lt.finder.miner.{MB3, MinerConfiguration}
+ import edu.jetbrains.plugin.lt.finder.postprocessor.{DefaultTemplatePostProcessor, DefaultTreeEncodingFormatter, TreeEncodingFormatter}
+ import edu.jetbrains.plugin.lt.finder.sstree.{DefaultSearchConfiguration, TemplateFilter, TemplateSearchConfiguration}
+ import edu.jetbrains.plugin.lt.newui.{ChooseFileTypeDialog, ChooseImportantTemplates, ChooseSettings, ChooseTemplate}
+ import edu.jetbrains.plugin.lt.ui.NoTemplatesDialog
 
-import scala.annotation.tailrec
-import scala.collection.JavaConversions._
+ import scala.annotation.tailrec
+ import scala.collection.JavaConversions._
 
 class LiveTemplateFindAction extends AnAction {
 
@@ -47,12 +46,14 @@ class LiveTemplateFindAction extends AnAction {
     val selectedFileTypes = chooseFileTypeDialog.showDialog().toSet
 
     @tailrec
-    def step(astNodes: Seq[FileASTNode], fileType: FileType, templateSearchConfiguration: TemplateSearchConfiguration): Unit = {
+    def step(astNodes: Seq[FileASTNode], fileType: FileType, templateSearchConfiguration: TemplateSearchConfiguration,
+             automaticModeSettings: AutomaticModeSettings): Unit = {
       val templates = getTemplates(
         astNodes,
         templateSearchConfiguration,
         fileTypeNodeFilters.getOrElse(fileType, DefaultFileTypeNodeFilter),
-        treeEncodingFormatters.getOrElse(fileType, new DefaultTreeEncodingFormatter)
+        treeEncodingFormatters.getOrElse(fileType, new DefaultTreeEncodingFormatter),
+        automaticModeSettings
       )
 
       if (templates.nonEmpty) {
@@ -60,9 +61,11 @@ class LiveTemplateFindAction extends AnAction {
         if (importantTemplates.nonEmpty) {
           val newTemplateSearchConfiguration = generateNewTemplateSearchConfiguration(importantTemplates)
           println(s"Generated search config: $newTemplateSearchConfiguration")
-          val mergedTemplateSearchConfiguration = templateSearchConfiguration.merge(newTemplateSearchConfiguration)
+          val mergedTemplateSearchConfiguration = TemplateSearchConfiguration.merge(
+            templateSearchConfiguration,
+            newTemplateSearchConfiguration)
           println(s"Merged search config: $mergedTemplateSearchConfiguration")
-          step(astNodes, fileType, mergedTemplateSearchConfiguration)
+          step(astNodes, fileType, mergedTemplateSearchConfiguration, automaticModeSettings)
         }
       } else {
         new NoTemplatesDialog(project).show()
@@ -70,14 +73,37 @@ class LiveTemplateFindAction extends AnAction {
     }
 
     if (Option(selectedFileTypes).isDefined) {
-      fileTypeToFiles.filter(f => selectedFileTypes(f._1)).foreach { case (fileType, files) =>
-        val astNodes = files.map(_.getNode).filter(_ != null)
-        if (astNodes.nonEmpty) {
-          println(s"File type ${fileType.getName}")
-          println(s"AstNodes count: ${astNodes.size}")
-          step(astNodes, fileType, DefaultSearchConfiguration)
+      val settings = new ChooseSettings().showDialog()
+      if (settings.templateSearchConfiguration == null) {
+        fileTypeToFiles.filter(f => selectedFileTypes(f._1)).foreach { case (fileType, files) =>
+          val astNodes = files.map(_.getNode).filter(_ != null)
+          if (astNodes.nonEmpty) {
+            println(s"File type ${fileType.getName}")
+            println(s"AstNodes count: ${astNodes.size}")
+            step(astNodes, fileType, DefaultSearchConfiguration, settings.automaticModeSettings)
+          }
         }
+      } else {
+        fileTypeToFiles.filter(f => selectedFileTypes(f._1)).foreach { case (fileType, files) =>
+          val astNodes = files.map(_.getNode).filter(_ != null)
+          val templates = new MB3(
+            new MinerConfiguration(settings.minSupport),
+            fileTypeNodeFilters.getOrElse(fileType, DefaultFileTypeNodeFilter)).getFrequentTreeEncodings(astNodes)
+
+          val templateFilterImpl = new TemplateFilter(settings.templateSearchConfiguration)
+          val templateProcessor = new DefaultTemplatePostProcessor {
+
+            override protected val templateFilter: TemplateFilter = templateFilterImpl
+
+            override protected val treeEncodingFormatter = treeEncodingFormatters.getOrElse(fileType, new DefaultTreeEncodingFormatter)
+          }
+
+
+          new ChooseTemplate(project, fileType, templateProcessor.process(templates)).showDialog()
+        }
+
       }
+
     }
   }
 
@@ -85,9 +111,7 @@ class LiveTemplateFindAction extends AnAction {
                            templateSearchConfiguration: TemplateSearchConfiguration,
                            fileTypeNodeFilter: FileTypeNodeFilter,
                            treeEncodingFormatterImpl: TreeEncodingFormatter,
-                           desiredTemplateCount: Int = 50,
-                           startMinSupportCoefficient: Double = 0.5,
-                           stepMinSupportCoefficient: Double = 0.5): Seq[Template] = {
+                           automaticModeSettings: AutomaticModeSettings): Seq[Template] = {
     import Math._
 
     import LiveTemplateFindAction._
@@ -121,16 +145,16 @@ class LiveTemplateFindAction extends AnAction {
 
 
         uniqTemplates.size match {
-          case _ if uniqTemplates.size == desiredTemplateCount => uniqTemplates
-          case _ if uniqTemplates.size < desiredTemplateCount =>
-            val curDiff = abs(desiredTemplateCount - uniqTemplates.size)
+          case _ if uniqTemplates.size == automaticModeSettings.desiredTemplateCount => uniqTemplates
+          case _ if uniqTemplates.size < automaticModeSettings.desiredTemplateCount =>
+            val curDiff = abs(automaticModeSettings.desiredTemplateCount - uniqTemplates.size)
             if (curDiff < minDiff) {
               helper(left, med, uniqTemplates, curDiff)
             } else {
               helper(left, med, bestResult, minDiff)
             }
-          case _ if uniqTemplates.size > desiredTemplateCount =>
-            val curDiff = abs(desiredTemplateCount - uniqTemplates.size)
+          case _ if uniqTemplates.size > automaticModeSettings.desiredTemplateCount =>
+            val curDiff = abs(automaticModeSettings.desiredTemplateCount - uniqTemplates.size)
 
             if (curDiff < minDiff) {
               helper(med + 1, right, uniqTemplates, curDiff)
@@ -172,6 +196,9 @@ class LiveTemplateFindAction extends AnAction {
     }
   }
 }
+
+case class AutomaticModeSettings(desiredTemplateCount: Int)
+
 
 object LiveTemplateFindAction {
   val MinMinSupportCoefficient = 1

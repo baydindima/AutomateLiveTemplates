@@ -4,7 +4,7 @@ import com.intellij.codeInsight.template.TemplateContextType;
 import com.intellij.codeInsight.template.impl.TemplateContext;
 import com.intellij.codeInsight.template.impl.TemplateImpl;
 import com.intellij.codeInsight.template.impl.TemplateSettings;
-import edu.jetbrains.plugin.lt.finder.Template;
+import edu.jetbrains.plugin.lt.finder.common.Template;
 
 public final class TemplateOps {
     private TemplateOps() {
@@ -12,7 +12,7 @@ public final class TemplateOps {
 
     public static void saveTemplate(Template template, String abbreviation, String description) {
         TemplateImpl templateToSave = new TemplateImpl(abbreviation, TemplateSettings.USER_GROUP_NAME);
-        String[] textParts = template.getBody().split("#_#");
+        String[] textParts = template.text().split("#_#");
         StringBuilder builder = new StringBuilder();
         for (int i = 1; i <= textParts.length; ++i) {
             builder.append(textParts[i - 1]);
