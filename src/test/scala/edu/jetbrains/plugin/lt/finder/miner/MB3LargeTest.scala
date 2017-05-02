@@ -50,6 +50,12 @@ class MB3LargeTest extends LightCodeInsightFixtureTestCase with Matchers {
       new MinerConfiguration(1),
       new JavaFileTypeNodeFilter).getFrequentTreeEncodings(psiFiles.map(_.getNode)))
 
+    templates.map(_.text) should contain allOf("@NotNull\n private final #_# ;",
+      "@Test\n public void #_# { #_# }",
+      "if ( #_# ) { #_# }",
+      "(@NotNull final #_# )"
+    )
+
     templates.foreach{template =>
       println(template.text)
       println("__________________________________")

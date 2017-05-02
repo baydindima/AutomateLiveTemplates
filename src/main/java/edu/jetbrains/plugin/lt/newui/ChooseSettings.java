@@ -26,12 +26,14 @@ public class ChooseSettings extends JDialog {
     private JButton okButton;
     private JFormattedTextField templateCountFormattedTextField;
 
+    private RunModeSettings result;
+
     public ChooseSettings() {
         $$$setupUI$$$();
         setContentPane(contentPane);
         setModal(true);
         getRootPane().setDefaultButton(okButton);
-        setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
         ButtonGroup group = new ButtonGroup();
         group.add(manualSettingsRadioButton);
@@ -44,7 +46,58 @@ public class ChooseSettings extends JDialog {
     }
 
     private void onOk() {
+        result = getResult();
+        validateParams();
         dispose();
+    }
+
+    private void validateParams() {
+        if (result.automaticModeSettings != null) {
+            if (result.automaticModeSettings.desiredTemplateCount() <= 0)
+                showErrorDialog("Desired template count must be positive!");
+        }
+        if (result.templateSearchConfiguration != null) {
+            if (result.templateSearchConfiguration.lengthMaximum() < result.templateSearchConfiguration.lengthMinimum())
+                showErrorDialog("Maximum text length must be more or equals minimum length");
+            if (result.templateSearchConfiguration.nodesMaximum() < result.templateSearchConfiguration.nodesMinimum())
+                showErrorDialog("Maximum node count must be more or equals minimum node count");
+            if (result.templateSearchConfiguration.placeholderMaximum() < 0)
+                showErrorDialog("Placeholder must be great or equals zero");
+            if (result.templateSearchConfiguration.maxPlaceholderToNodeRatio() < 0 || result.templateSearchConfiguration.maxPlaceholderToNodeRatio() > 1)
+                showErrorDialog("Max placeholder to node ratio must be between 0 and 1");
+            if (result.templateSearchConfiguration.nodesMinimum() < 1)
+                showErrorDialog("Nodes minimum must be greater than zero");
+            if (result.templateSearchConfiguration.nodesMaximum() < 1)
+                showErrorDialog("Nodes maximum must be greater than zero");
+            if (result.templateSearchConfiguration.lengthMinimum() < 1)
+                showErrorDialog("Length minimum must be greater than zero");
+            if (result.templateSearchConfiguration.lengthMaximum() < 1)
+                showErrorDialog("Length maximum must be greater than zero");
+            if (result.minSupport <= 0)
+                showErrorDialog("Minimum support must be positive");
+        }
+    }
+
+    private void showErrorDialog(String message) {
+        JOptionPane.showMessageDialog(this, message);
+    }
+
+    private RunModeSettings getResult() {
+        if (manualSettingsRadioButton.isSelected()) {
+            return new RunModeSettings(Double.parseDouble(minSupportFormattedTextField.getText().replace(",", ".")),
+                    new TemplateSearchConfigurationImpl(
+                            Integer.parseInt(lengthMinimumFormattedTextField.getText()),
+                            Integer.parseInt(lengthMaximumFormattedTextField.getText()),
+                            Integer.parseInt(placeholderMaximumFormattedTextField.getText()),
+                            Integer.parseInt(nodesMinimumFormattedTextField.getText()),
+                            Integer.parseInt(nodesMaximumFormattedTextField.getText()),
+                            Double.parseDouble(placeholderRatioFormattedTextField.getText().replace(",", "."))
+                    ),
+                    null);
+        } else {
+            return new RunModeSettings(0, null,
+                    new AutomaticModeSettings(Integer.parseInt(templateCountFormattedTextField.getText())));
+        }
     }
 
     private void setManualTrue(boolean value) {
@@ -84,21 +137,7 @@ public class ChooseSettings extends JDialog {
     public RunModeSettings showDialog() {
         pack();
         setVisible(true);
-        if (manualSettingsRadioButton.isSelected()) {
-            return new RunModeSettings(Integer.parseInt(minSupportFormattedTextField.getText()),
-                    new TemplateSearchConfigurationImpl(
-                            Integer.parseInt(lengthMinimumFormattedTextField.getText()),
-                            Integer.parseInt(lengthMaximumFormattedTextField.getText()),
-                            Integer.parseInt(placeholderMaximumFormattedTextField.getText()),
-                            Integer.parseInt(nodesMinimumFormattedTextField.getText()),
-                            Integer.parseInt(nodesMaximumFormattedTextField.getText()),
-                            Double.parseDouble(placeholderRatioFormattedTextField.getText().replace(",", "."))
-                    ),
-                    null);
-        } else {
-            return new RunModeSettings(0, null,
-                    new AutomaticModeSettings(Integer.parseInt(templateCountFormattedTextField.getText())));
-        }
+        return result;
     }
 
 
@@ -117,6 +156,7 @@ public class ChooseSettings extends JDialog {
         createUIComponents();
         contentPane = new JPanel();
         contentPane.setLayout(new GridLayoutManager(1, 3, new Insets(0, 0, 0, 0), -1, -1));
+        contentPane.setMaximumSize(new Dimension(545, 308));
         final JPanel panel1 = new JPanel();
         panel1.setLayout(new GridLayoutManager(3, 2, new Insets(0, 0, 0, 0), -1, -1));
         contentPane.add(panel1, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
@@ -184,11 +224,11 @@ public class ChooseSettings extends JDialog {
     }
 
     public static final class RunModeSettings {
-        public final int minSupport;
+        public final double minSupport;
         public final TemplateSearchConfiguration templateSearchConfiguration;
         public final AutomaticModeSettings automaticModeSettings;
 
-        public RunModeSettings(int minSupport, TemplateSearchConfiguration templateSearchConfiguration,
+        public RunModeSettings(double minSupport, TemplateSearchConfiguration templateSearchConfiguration,
                                AutomaticModeSettings automaticModeSettings) {
             this.minSupport = minSupport;
             this.templateSearchConfiguration = templateSearchConfiguration;

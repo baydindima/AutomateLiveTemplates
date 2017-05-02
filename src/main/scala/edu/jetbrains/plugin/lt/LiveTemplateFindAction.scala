@@ -9,7 +9,7 @@ package edu.jetbrains.plugin.lt
  import edu.jetbrains.plugin.lt.finder.common.Template
  import edu.jetbrains.plugin.lt.finder.extensions.{DefaultFileTypeNodeFilter, FileTypeNodeFilter}
  import edu.jetbrains.plugin.lt.finder.miner.{MB3, MinerConfiguration}
- import edu.jetbrains.plugin.lt.finder.postprocessor.{DefaultTemplatePostProcessor, DefaultTreeEncodingFormatter, TreeEncodingFormatter}
+import edu.jetbrains.plugin.lt.finder.postprocessor.{DefaultTemplatePostProcessor, DefaultTreeEncodingFormatter, TemplatePostProcessor, TreeEncodingFormatter}
  import edu.jetbrains.plugin.lt.finder.sstree.{DefaultSearchConfiguration, TemplateFilter, TemplateSearchConfiguration}
  import edu.jetbrains.plugin.lt.newui.{ChooseFileTypeDialog, ChooseImportantTemplates, ChooseSettings, ChooseTemplate}
  import edu.jetbrains.plugin.lt.ui.NoTemplatesDialog
@@ -74,32 +74,39 @@ class LiveTemplateFindAction extends AnAction {
 
     if (Option(selectedFileTypes).isDefined) {
       val settings = new ChooseSettings().showDialog()
-      if (settings.templateSearchConfiguration == null) {
-        fileTypeToFiles.filter(f => selectedFileTypes(f._1)).foreach { case (fileType, files) =>
-          val astNodes = files.map(_.getNode).filter(_ != null)
-          if (astNodes.nonEmpty) {
-            println(s"File type ${fileType.getName}")
-            println(s"AstNodes count: ${astNodes.size}")
-            step(astNodes, fileType, DefaultSearchConfiguration, settings.automaticModeSettings)
+      if (settings != null) {
+        if (settings.templateSearchConfiguration == null) {
+          fileTypeToFiles.filter(f => selectedFileTypes(f._1)).foreach { case (fileType, files) =>
+            val astNodes = files.map(_.getNode).filter(_ != null)
+            if (astNodes.nonEmpty) {
+              println(s"File type ${fileType.getName}")
+              println(s"AstNodes count: ${astNodes.size}")
+              step(astNodes, fileType, DefaultSearchConfiguration, settings.automaticModeSettings)
+            }
           }
-        }
-      } else {
-        fileTypeToFiles.filter(f => selectedFileTypes(f._1)).foreach { case (fileType, files) =>
-          val astNodes = files.map(_.getNode).filter(_ != null)
-          val templates = new MB3(
-            new MinerConfiguration(settings.minSupport),
-            fileTypeNodeFilters.getOrElse(fileType, DefaultFileTypeNodeFilter)).getFrequentTreeEncodings(astNodes)
+        } else {
+          fileTypeToFiles.filter(f => selectedFileTypes(f._1)).foreach { case (fileType, files) =>
+            val astNodes = files.map(_.getNode).filter(_ != null)
 
-          val templateFilterImpl = new TemplateFilter(settings.templateSearchConfiguration)
-          val templateProcessor = new DefaultTemplatePostProcessor {
+            val templateFilterImpl = new TemplateFilter(settings.templateSearchConfiguration)
+            val templateProcessor = new DefaultTemplatePostProcessor {
 
-            override protected val templateFilter: TemplateFilter = templateFilterImpl
+              override protected val templateFilter: TemplateFilter = templateFilterImpl
 
-            override protected val treeEncodingFormatter = treeEncodingFormatters.getOrElse(fileType, new DefaultTreeEncodingFormatter)
+              override protected val treeEncodingFormatter = treeEncodingFormatters.getOrElse(fileType, new DefaultTreeEncodingFormatter)
+            }
+
+
+            val templates = getTemplates(astNodes, fileTypeNodeFilters.getOrElse(fileType, DefaultFileTypeNodeFilter), settings.minSupport, templateProcessor)
+            if (templates.isEmpty) {
+              new NoTemplatesDialog(project).show()
+            } else {
+              new ChooseTemplate(project,
+                fileType,
+                templates
+              ).showDialog()
+            }
           }
-
-
-          new ChooseTemplate(project, fileType, templateProcessor.process(templates)).showDialog()
         }
 
       }
@@ -128,21 +135,7 @@ class LiveTemplateFindAction extends AnAction {
       if (left < right) {
         val med = left + (right - left) / 2
 
-        println(s"Free memory ${Runtime.getRuntime.freeMemory()}")
-        println(s"Min support coefficient: ${med * MinSupportCoefficientStep}")
-
-        val start = System.currentTimeMillis()
-
-        val templates = new MB3(
-          new MinerConfiguration(med * MinSupportCoefficientStep),
-          fileTypeNodeFilter).getFrequentTreeEncodings(astNodes)
-
-        val uniqTemplates = templateProcessor.process(templates)
-
-        println(s"Uniq templates count: ${uniqTemplates.size}")
-
-        println(s"Time for templates extracting: ${System.currentTimeMillis() - start}")
-
+        val uniqTemplates = getTemplates(astNodes, fileTypeNodeFilter, med * MinSupportCoefficientStep, templateProcessor)
 
         uniqTemplates.size match {
           case _ if uniqTemplates.size == automaticModeSettings.desiredTemplateCount => uniqTemplates
@@ -169,6 +162,28 @@ class LiveTemplateFindAction extends AnAction {
 
     helper(MinMinSupportCoefficient, MaxMinSupportCoefficient + 1, Seq.empty, Int.MaxValue)
   }
+
+  private def getTemplates(astNodes: Seq[FileASTNode],
+                           fileTypeNodeFilter: FileTypeNodeFilter,
+                           minSupport: Double,
+                           templatePostProcessor: TemplatePostProcessor): Seq[Template] = {
+    println(s"Free memory ${Runtime.getRuntime.freeMemory()}")
+    println(s"Min support coefficient: $minSupport")
+
+    val start = System.currentTimeMillis()
+
+    val templates = new MB3(
+      new MinerConfiguration(minSupport),
+      fileTypeNodeFilter).getFrequentTreeEncodings(astNodes)
+
+    val uniqTemplates = templatePostProcessor.process(templates)
+
+    println(s"Uniq templates count: ${uniqTemplates.size}")
+
+    println(s"Time for templates extracting: ${System.currentTimeMillis() - start}")
+    uniqTemplates
+  }
+
 
   private def getFiles(roots: Seq[VirtualFile], psiManager: PsiManager): Seq[PsiFile] = {
     def allFilesFrom(psiDirectory: PsiDirectory): Seq[PsiFile] =
